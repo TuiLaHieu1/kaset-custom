@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @available(macOS 26.0, *)
 @MainActor

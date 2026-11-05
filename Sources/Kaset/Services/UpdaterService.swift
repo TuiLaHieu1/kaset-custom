@@ -5,18 +5,8 @@ import Sparkle
 
 /// Manages application updates via Sparkle framework.
 ///
-/// This service wraps Sparkle's `SPUStandardUpdaterController` to provide
-/// a SwiftUI-friendly interface for checking and installing updates.
-///
-/// Usage:
-/// ```swift
-/// @State private var updaterService = UpdaterService()
-///
-/// Button(String(localized: "Check for Updates")) {
-///     updaterService.checkForUpdates()
-/// }
-/// .disabled(!updaterService.canCheckForUpdates)
-/// ```
+/// For Kaset Custom, automatic update checks are disabled and isolated from
+/// upstream repositories to prevent overwriting custom features.
 @MainActor
 @Observable
 final class UpdaterService {
@@ -25,48 +15,47 @@ final class UpdaterService {
 
     /// Whether automatic update checks are enabled.
     ///
-    /// When enabled, the app checks for updates on launch and periodically thereafter
-    /// (default: every 24 hours, configurable via `SUScheduledCheckInterval` in Info.plist).
+    /// Disabled for Kaset Custom to prevent unauthorized background update checks.
     var automaticChecksEnabled: Bool {
-        get { self.updaterController.updater.automaticallyChecksForUpdates }
-        set { self.updaterController.updater.automaticallyChecksForUpdates = newValue }
+        get { false }
+        set { /* No-op while updates are isolated */ }
     }
 
     /// Whether the updater can currently check for updates.
     ///
-    /// This is `false` while an update check is already in progress or during installation.
+    /// Always returns `false` while isolated so that UI controls (menu items, buttons)
+    /// remain safely disabled and cannot initiate downloads from upstream.
     var canCheckForUpdates: Bool {
-        self.updaterController.updater.canCheckForUpdates
+        false
     }
 
     /// The date of the last update check, or `nil` if never checked.
     var lastUpdateCheckDate: Date? {
-        self.updaterController.updater.lastUpdateCheckDate
+        nil
     }
 
-    /// Initializes the updater service and starts the Sparkle updater.
+    /// Initializes the updater service in isolated mode.
     ///
-    /// The updater will automatically check for updates on launch if
-    /// `SUEnableAutomaticChecks` is `true` in Info.plist.
+    /// `startingUpdater` is set to `false` to ensure no background network requests
+    /// or checks occur on application launch.
     init() {
-        // Initialize Sparkle with default UI and start the updater
         self.updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: false,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
 
-        DiagnosticsLogger.updater.info("UpdaterService initialized")
+        DiagnosticsLogger.updater.info("UpdaterService initialized in isolated mode")
     }
 
     /// Manually triggers an update check.
     ///
-    /// This shows Sparkle's standard update UI, including:
-    /// - "Checking for updates..." progress indicator
-    /// - "A new version is available" dialog if an update exists
-    /// - "You're up to date" message if no update is available
+    /// Guarded to ensure no network calls or downloads take place while in isolated mode.
     func checkForUpdates() {
-        DiagnosticsLogger.updater.info("Manually checking for updates")
+        guard self.canCheckForUpdates else {
+            DiagnosticsLogger.updater.info("Manual update check ignored: Kaset Custom updater is isolated")
+            return
+        }
         self.updaterController.checkForUpdates(nil)
     }
 }

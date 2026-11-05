@@ -341,7 +341,7 @@ final class NowPlayingManager {
         withObservationTracking {
             _ = self.settings.mediaControlStyle
             _ = self.settings.playbackAudioQuality
-        } onChange: {
+        } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.syncMediaControlSetting()
                 self?.syncPlaybackAudioQualitySetting()

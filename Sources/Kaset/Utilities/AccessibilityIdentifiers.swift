@@ -65,6 +65,7 @@ enum AccessibilityID {
         static let minimizeButton = "miniPlayer.minimize"
         static let expandButton = "miniPlayer.expand"
         static let panelToggleButton = "miniPlayer.panelToggle"
+        static let pinButton = "miniPlayer.pinButton"
         static let returnToKasetButton = "miniPlayer.returnToKaset"
         static let lyricsButton = "miniPlayer.lyrics"
         static let lyricsView = "miniPlayer.lyricsView"

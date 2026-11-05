@@ -64,6 +64,30 @@ struct MiniPlayerWindowControllerTests {
         #expect(playerService.shouldHostPlaybackInMiniPlayer)
     }
 
+    @Test("Syncing window state applies the current pin setting to the live window")
+    func syncWindowStateAppliesWindowLevel() {
+        let playerService = PlayerService()
+        playerService.openMiniPlayer()
+        let window = Self.makeWindow()
+        let controller = MiniPlayerWindowController.makeTestInstance(window: window, playerService: playerService)
+        defer {
+            SettingsManager.shared.keepMiniPlayerOnTop = false
+            controller.close()
+        }
+
+        SettingsManager.shared.keepMiniPlayerOnTop = false
+        controller.syncWindowState()
+        #expect(window.level == .normal)
+
+        SettingsManager.shared.keepMiniPlayerOnTop = true
+        controller.syncWindowState()
+        #expect(window.level == .floating)
+
+        SettingsManager.shared.keepMiniPlayerOnTop = false
+        controller.syncWindowState()
+        #expect(window.level == .normal)
+    }
+
     private static func makeWindow() -> NSWindow {
         let window = MiniPlayerTestWindow(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 184),

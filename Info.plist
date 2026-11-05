@@ -17,21 +17,22 @@
 		</dict>
 	</array>
 
-	<!-- Sparkle Auto-Update Configuration -->
+	<!-- Sparkle Auto-Update Configuration (Kaset Custom) -->
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/sozercan/kaset/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/TuiLaHieu1/kaset-custom/main/appcast.xml</string>
 
-	<key>SUPublicEDKey</key>
-	<string>qa2zoeXHqn+pluxQSGjn5HyIYA/iFtrEJz7S1BoslpI=</string>
+	<!-- Dedicated public EdDSA key for Kaset Custom will be configured here when generated -->
+	<!-- <key>SUPublicEDKey</key> -->
+	<!-- <string>PLACEHOLDER_FOR_FUTURE_CUSTOM_EDDSA_PUBLIC_KEY</string> -->
 
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
+	<false/>
 
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 
 	<key>SUAllowsAutomaticUpdates</key>
-	<true/>
+	<false/>
 
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>

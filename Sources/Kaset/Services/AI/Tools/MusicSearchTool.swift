@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import os
 
 /// A tool that allows the language model to search the YouTube Music catalog.
 /// This grounds AI responses in real music data rather than hallucinated song IDs.

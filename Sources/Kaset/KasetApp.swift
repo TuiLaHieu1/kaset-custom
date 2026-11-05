@@ -29,8 +29,15 @@ extension EnvironmentValues {
     @Entry var libraryViewModel: LibraryViewModel?
 }
 
+private struct OnPlaylistDeletedKey: EnvironmentKey {
+    static let defaultValue: (@MainActor @Sendable () -> Void)? = nil
+}
+
 extension EnvironmentValues {
-    @Entry var onPlaylistDeleted: (() -> Void)?
+    var onPlaylistDeleted: (@MainActor @Sendable () -> Void)? {
+        get { self[OnPlaylistDeletedKey.self] }
+        set { self[OnPlaylistDeletedKey.self] = newValue }
+    }
 }
 
 // MARK: - KasetApp
@@ -591,6 +598,9 @@ struct KasetApp: App {
                     }
                 }
                 .keyboardShortcut("m", modifiers: [.command, .shift])
+
+                Toggle(String(localized: "Keep Mini Player on Top"), isOn: self.$settings.keepMiniPlayerOnTop)
+                    .disabled(!self.playerService.isMiniPlayerVisible)
 
                 Divider()
 

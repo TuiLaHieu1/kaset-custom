@@ -1,4 +1,5 @@
 import AppKit
+import os
 import SwiftUI
 
 // MARK: - PersistentPlayerView
@@ -339,13 +340,24 @@ struct MiniPlayerWindow: View {
     }
 
     private var hoverCommandPill: some View {
-        HStack(spacing: 11) {
+        HStack(spacing: 8) {
             self.hoverIconButton(
                 systemName: "macwindow",
                 accessibilityID: AccessibilityID.MiniPlayer.returnToKasetButton,
                 label: String(localized: "Return to Kaset")
             ) {
                 MiniPlayerWindowController.shared.returnToMainWindowFromUserAction()
+            }
+
+            self.hoverIconButton(
+                systemName: self.settings.keepMiniPlayerOnTop ? "pin.fill" : "pin",
+                accessibilityID: AccessibilityID.MiniPlayer.pinButton,
+                label: String(localized: "Keep Mini Player on Top"),
+                isActive: self.settings.keepMiniPlayerOnTop
+            ) {
+                HapticService.toggle()
+                self.settings.keepMiniPlayerOnTop.toggle()
+                MiniPlayerWindowController.shared.syncWindowState()
             }
 
             self.hoverIconButton(
@@ -393,7 +405,7 @@ struct MiniPlayerWindow: View {
         }
         .font(.system(size: 14, weight: .semibold))
         .foregroundStyle(.white.opacity(0.94))
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 8)
         .frame(height: 30)
         .background(.black.opacity(0.18), in: .capsule)
         .compatGlass(interactive: true, in: .capsule)

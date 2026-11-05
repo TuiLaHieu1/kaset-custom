@@ -1,6 +1,43 @@
 import AppKit
 import SwiftUI
 
+// MARK: - MiniPlayerWindowLevelPolicy
+
+/// Deterministic presentation policy for the YouTube Music mini player.
+/// Desired state lives in `SettingsManager`; the controller decides when it is
+/// safe to apply that state to the live AppKit window.
+@MainActor
+enum MiniPlayerWindowLevelPolicy {
+    static let requiredCollectionBehavior: NSWindow.CollectionBehavior = [
+        .canJoinAllSpaces,
+        .fullScreenAuxiliary,
+    ]
+
+    static func windowLevel(isPinned: Bool) -> NSWindow.Level {
+        isPinned ? .floating : .normal
+    }
+
+    static func collectionBehavior(
+        preserving current: NSWindow.CollectionBehavior
+    ) -> NSWindow.CollectionBehavior {
+        var behavior = current
+        behavior.remove(.transient)
+        behavior.remove(.stationary)
+        behavior.remove(.ignoresCycle)
+        behavior.formUnion(self.requiredCollectionBehavior)
+        return behavior
+    }
+
+    static func configureCollectionBehavior(of window: NSWindow) {
+        window.collectionBehavior = self.collectionBehavior(preserving: window.collectionBehavior)
+    }
+
+    static func applyWindowLevel(isPinned: Bool, to window: NSWindow) {
+        window.level = self.windowLevel(isPinned: isPinned)
+        self.configureCollectionBehavior(of: window)
+    }
+}
+
 // MARK: - MiniPlayerWindowController
 
 /// Manages the Apple Music-style floating mini player window.
@@ -171,7 +208,10 @@ final class MiniPlayerWindowController {
     }
 
     private func applyWindowLevel(_ window: NSWindow) {
-        window.level = SettingsManager.shared.keepMiniPlayerOnTop ? .floating : .normal
+        MiniPlayerWindowLevelPolicy.applyWindowLevel(
+            isPinned: SettingsManager.shared.keepMiniPlayerOnTop,
+            to: window
+        )
     }
 
     private func applySize(for panel: PlayerService.MiniPlayerPanel, window: NSWindow, animated: Bool = false) {

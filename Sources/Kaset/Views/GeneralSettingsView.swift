@@ -131,6 +131,7 @@ struct GeneralSettingsView: View {
 
             Section {
                 Toggle("Automatically check for updates", isOn: $updater.automaticChecksEnabled)
+                    .disabled(!self.updaterService.canCheckForUpdates)
 
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {

@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import os
 
 /// A tool that provides the current playback queue context to the language model.
 /// This allows AI to understand what's in the queue before making changes.
