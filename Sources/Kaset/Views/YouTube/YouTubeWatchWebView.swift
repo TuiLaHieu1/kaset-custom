@@ -272,6 +272,7 @@ final class YouTubeWatchWebView {
             on: webView.configuration.userContentController,
             targetVolume: targetVolume,
             documentGeneration: navigationGeneration,
+            videoId: videoId,
             pendingSeek: navigationPendingSeek,
             pendingSeekVideoId: navigationPendingSeek == nil ? nil : videoId,
             pendingSeekAttemptID: self.pendingSeekAttemptIDsByGeneration[navigationGeneration]
@@ -371,6 +372,7 @@ extension YouTubeWatchWebView {
             on: webView.configuration.userContentController,
             targetVolume: targetVolume,
             documentGeneration: scriptGeneration,
+            videoId: self.currentVideoId,
             pendingSeek: pendingSeek,
             pendingSeekVideoId: pendingSeek == nil ? nil : self.currentVideoId,
             pendingSeekAttemptID: pendingSeek == nil
@@ -510,6 +512,7 @@ extension YouTubeWatchWebView {
             on: webView.configuration.userContentController,
             targetVolume: targetVolume,
             documentGeneration: trackedNavigation.generation,
+            videoId: self.pendingSeekVideoIdsByGeneration[trackedNavigation.generation] ?? self.currentVideoId,
             pendingSeek: trackedNavigation.pendingSeek,
             pendingSeekVideoId: self.pendingSeekVideoIdsByGeneration[trackedNavigation.generation],
             pendingSeekAttemptID: self.pendingSeekAttemptIDsByGeneration[trackedNavigation.generation]
@@ -822,6 +825,7 @@ extension YouTubeWatchWebView {
         on contentController: WKUserContentController,
         targetVolume: Double,
         documentGeneration: UInt64,
+        videoId: String? = nil,
         pendingSeek: Double? = nil,
         pendingSeekVideoId: String? = nil,
         pendingSeekAttemptID: UInt64? = nil
@@ -832,6 +836,7 @@ extension YouTubeWatchWebView {
             source: Self.pageBootstrapScript(
                 targetVolume: targetVolume,
                 documentGeneration: documentGeneration,
+                videoId: videoId,
                 pendingSeek: pendingSeek,
                 pendingSeekVideoId: pendingSeekVideoId,
                 pendingSeekAttemptID: pendingSeekAttemptID

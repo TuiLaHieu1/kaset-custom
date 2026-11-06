@@ -11,6 +11,7 @@ extension YouTubeWatchWebView {
     nonisolated static func pageBootstrapScript(
         targetVolume: Double,
         documentGeneration _: UInt64,
+        videoId: String? = nil,
         pendingSeek: Double? = nil,
         pendingSeekVideoId: String? = nil,
         pendingSeekAttemptID: UInt64? = nil
@@ -38,8 +39,14 @@ extension YouTubeWatchWebView {
         })();
         window.__kasetTargetVolume = \(clamped);
         window.__kasetNativePausePending = false;
+        window.__kasetAutoplayPending = true;
+        window.__kasetAutoplayAttempts = 0;
         \(Self.documentStartAudioGuardScript(targetVolume: clamped))
         """
+        if let videoId {
+            let literal = WebPlaybackDocumentGeneration.javaScriptStringLiteral(videoId)
+            script += " window.__kasetCurrentVideoId = \(literal);"
+        }
         if let pendingSeek, pendingSeek.isFinite, pendingSeek >= 0 {
             let attemptID = pendingSeekAttemptID ?? 1
             script += " window.__kasetPendingSeek = \(pendingSeek); window.__kasetPendingSeekWaits = 0; window.__kasetPendingSeekApplied = false; window.__kasetPendingSeekFailed = false; window.__kasetPendingSeekAttempt = \(attemptID); window.__kasetPendingSeekInFlightAttempt = null;"

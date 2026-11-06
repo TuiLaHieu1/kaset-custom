@@ -246,6 +246,32 @@ struct YouTubeWatchScriptTests {
         ).contains("__kasetPendingSeek"))
     }
 
+    @Test("Bootstrap carries current video ID and autoplay pending flags")
+    func bootstrapCarriesCurrentVideoIdAndAutoplayPending() {
+        let script = YouTubeWatchWebView.pageBootstrapScript(
+            targetVolume: 1,
+            documentGeneration: 0,
+            videoId: "test-video-123"
+        )
+        #expect(script.contains("__kasetCurrentVideoId = \"test-video-123\""))
+        #expect(script.contains("__kasetAutoplayPending = true"))
+        #expect(script.contains("__kasetAutoplayAttempts = 0"))
+    }
+
+    @Test("Observer falls back to bootstrap current video ID when getVideoData is not ready")
+    func observerVideoIdFallback() throws {
+        let context = try self.makeObserverContext(paused: false)
+        try self.evaluate(
+            """
+            window.__kasetCurrentVideoId = 'fallback-123';
+            moviePlayer.getVideoData = function() { return null; };
+            """,
+            in: context
+        )
+        try self.evaluate(YouTubeWatchWebView.observerScript, in: context)
+        #expect(context.evaluateScript("postedMessages[0].videoId").toString() == "fallback-123")
+    }
+
     @Test("Observer applies the pending seek gated on a seekable element")
     func observerAppliesPendingSeekWhenReady() {
         let script = YouTubeWatchWebView.observerScript

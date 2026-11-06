@@ -68,7 +68,16 @@ extension YouTubeWatchWebView {
 
             function currentVideoId() {
                 const data = videoData();
-                return (data && (data.video_id || data.videoId)) || '';
+                const fromData = (data && (data.video_id || data.videoId)) || '';
+                if (fromData) { return fromData; }
+                try {
+                    const fromUrl = new URLSearchParams(window.location.search).get('v');
+                    if (fromUrl) { return fromUrl; }
+                } catch (e) {}
+                if (window.__kasetCurrentVideoId) {
+                    return window.__kasetCurrentVideoId;
+                }
+                return window.__kasetPendingSeekVideoId || '';
             }
 
             function currentTitle() {
@@ -358,6 +367,53 @@ extension YouTubeWatchWebView {
                 } catch (e) {}
             }
 
+            function attemptAutoplay(video) {
+                if (!window.__kasetAutoplayPending) { return; }
+                if (window.__kasetNativePausePending) { return; }
+                if (!video) { video = videoEl(); }
+                if (!video) { return; }
+
+                if (!video.paused && !video.ended) {
+                    window.__kasetAutoplayPending = false;
+                    window.__kasetAutoplayAttempts = 0;
+                    return;
+                }
+
+                const attempts = window.__kasetAutoplayAttempts || 0;
+                if (attempts >= 10) {
+                    window.__kasetAutoplayPending = false;
+                    return;
+                }
+                window.__kasetAutoplayAttempts = attempts + 1;
+
+                function scheduleRetry() {
+                    if (window.__kasetAutoplayRetryTimeoutId) { return; }
+                    window.__kasetAutoplayRetryTimeoutId = setTimeout(function() {
+                        window.__kasetAutoplayRetryTimeoutId = null;
+                        const v = videoEl();
+                        if (window.__kasetAutoplayPending && v && v.paused && !window.__kasetNativePausePending) {
+                            attemptAutoplay(v);
+                        }
+                    }, 250);
+                }
+
+                const player = moviePlayer();
+                if (player && typeof player.playVideo === 'function') {
+                    try { player.playVideo(); } catch (e) {}
+                }
+                try {
+                    const playPromise = video.play();
+                    if (playPromise && typeof playPromise.catch === 'function') {
+                        playPromise.catch(function() { scheduleRetry(); });
+                    }
+                } catch (e) {
+                    scheduleRetry();
+                }
+                scheduleRetry();
+            }
+
+            window.__kasetAttemptAutoplay = attemptAutoplay;
+
             function eventVideo(event) {
                 return (event && event.currentTarget) || videoEl();
             }
@@ -365,6 +421,8 @@ extension YouTubeWatchWebView {
             function handlePlaybackStarted(event) {
                 const video = eventVideo(event);
                 if (!video) return;
+                window.__kasetAutoplayPending = false;
+                window.__kasetAutoplayAttempts = 0;
                 bindVideoIdentity(video, false);
                 armEndedOccurrence(video);
                 enforceVolume(video);
@@ -385,6 +443,10 @@ extension YouTubeWatchWebView {
                 if (event && (event.type === 'seeked' || event.type === 'loadedmetadata'
                     || event.type === 'canplay')) {
                     armEndedOccurrence(video);
+                }
+                if (event && (event.type === 'canplay' || event.type === 'loadedmetadata'
+                    || event.type === 'durationchange' || event.type === 'waiting')) {
+                    attemptAutoplay(video);
                 }
                 sendUpdate(true);
             }
@@ -419,6 +481,7 @@ extension YouTubeWatchWebView {
                         armEndedOccurrence(video);
                         sendUpdate(true);
                     }
+                    attemptAutoplay(video);
                     return true;
                 }
                 video.__kasetAttached = true;
@@ -439,9 +502,29 @@ extension YouTubeWatchWebView {
                 video.addEventListener('volumechange', function() {
                     enforceVolume(video);
                 });
+                video.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const player = moviePlayer();
+                    if (video.paused) {
+                        window.__kasetNativePausePending = false;
+                        window.__kasetAutoplayPending = true;
+                        if (player && typeof player.playVideo === 'function') {
+                            try { player.playVideo(); } catch (err) {}
+                        }
+                        video.play();
+                    } else {
+                        window.__kasetNativePausePending = true;
+                        window.__kasetAutoplayPending = false;
+                        if (player && typeof player.pauseVideo === 'function') {
+                            try { player.pauseVideo(); } catch (err) {}
+                        }
+                        video.pause();
+                    }
+                });
 
                 enforceVolume(video);
                 applyPendingSeek(video);
+                attemptAutoplay(video);
                 sendUpdate(true);
                 return true;
             }
@@ -769,14 +852,27 @@ extension YouTubeWatchWebView {
         self.webView?.evaluateJavaScript(
             """
             (function() {
+                const player = document.getElementById('movie_player');
                 const video = document.querySelector('#movie_player video') || document.querySelector('video');
                 if (!video) { return 'no-video'; }
                 if (video.paused) {
                     window.__kasetNativePausePending = false;
+                    window.__kasetAutoplayPending = true;
+                    if (player && typeof player.playVideo === 'function') {
+                        try { player.playVideo(); } catch (e) {}
+                    }
                     video.play();
                     return 'playing';
                 } else {
                     window.__kasetNativePausePending = true;
+                    window.__kasetAutoplayPending = false;
+                    if (window.__kasetAutoplayRetryTimeoutId) {
+                        clearTimeout(window.__kasetAutoplayRetryTimeoutId);
+                        window.__kasetAutoplayRetryTimeoutId = null;
+                    }
+                    if (player && typeof player.pauseVideo === 'function') {
+                        try { player.pauseVideo(); } catch (e) {}
+                    }
                     video.pause();
                     return 'paused';
                 }
@@ -792,6 +888,11 @@ extension YouTubeWatchWebView {
             """
             (function() {
                 window.__kasetNativePausePending = false;
+                window.__kasetAutoplayPending = true;
+                const player = document.getElementById('movie_player');
+                if (player && typeof player.playVideo === 'function') {
+                    try { player.playVideo(); } catch (e) {}
+                }
                 const video = document.querySelector('#movie_player video') || document.querySelector('video');
                 if (video && video.paused) { video.play(); }
             })();
@@ -806,6 +907,15 @@ extension YouTubeWatchWebView {
             """
             (function() {
                 window.__kasetNativePausePending = true;
+                window.__kasetAutoplayPending = false;
+                if (window.__kasetAutoplayRetryTimeoutId) {
+                    clearTimeout(window.__kasetAutoplayRetryTimeoutId);
+                    window.__kasetAutoplayRetryTimeoutId = null;
+                }
+                const player = document.getElementById('movie_player');
+                if (player && typeof player.pauseVideo === 'function') {
+                    try { player.pauseVideo(); } catch (e) {}
+                }
                 const video = document.querySelector('#movie_player video') || document.querySelector('video');
                 if (video && !video.paused) { video.pause(); }
             })();

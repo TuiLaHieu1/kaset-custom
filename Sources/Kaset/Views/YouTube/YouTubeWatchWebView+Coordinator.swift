@@ -298,6 +298,9 @@ extension YouTubeWatchWebView {
                         }
                     }
                     if (window.__kasetExtractVideo) { window.__kasetExtractVideo(); }
+                    if (typeof window.__kasetAttemptAutoplay === 'function') {
+                        window.__kasetAttemptAutoplay();
+                    }
                 })();
                 """,
                 completionHandler: nil

@@ -193,6 +193,24 @@ struct YouTubePlayerLoadingTimeoutTests {
         #expect(!service.isPlaybackLoading)
     }
 
+    @Test("Early ready media with matching bound ID completes loading before metadata ID arrives")
+    func earlyReadyMediaWithMatchingBoundIdCompletesLoading() {
+        let controller = MockYouTubeWatchPlaybackController()
+        let service = YouTubePlayerService(playbackController: controller)
+        service.play(video: MockYouTubeClient.makeVideo(videoId: "abc"))
+        service.updatePlaybackState(.init(
+            isPlaying: false,
+            progress: 0,
+            duration: 0,
+            hasReadyMedia: true,
+            videoId: nil,
+            boundVideoId: "abc"
+        ))
+
+        #expect(service.currentVideo?.videoId == "abc")
+        #expect(!service.isPlaybackLoading)
+    }
+
     @Test("A stale ready advertisement does not clear a newer video's loading cycle")
     func staleReadyAdvertisementDoesNotClearIncomingLoading() {
         let controller = MockYouTubeWatchPlaybackController()

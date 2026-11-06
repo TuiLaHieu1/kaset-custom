@@ -1363,7 +1363,13 @@ extension YouTubePlayerService {
             return update.boundVideoId == self.currentVideo?.videoId
         }
         guard let currentVideoId = self.currentVideo?.videoId else { return false }
-        return update.videoId == currentVideoId && update.boundVideoId == currentVideoId
+        if let boundVideoId = update.boundVideoId, boundVideoId != currentVideoId {
+            return false
+        }
+        if let videoId = update.videoId, videoId != currentVideoId {
+            return false
+        }
+        return update.videoId == currentVideoId || update.boundVideoId == currentVideoId
     }
 
     private func deferMediaErrorIfNeeded(_ update: PlaybackUpdate) {
