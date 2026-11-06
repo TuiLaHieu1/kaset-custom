@@ -13,7 +13,9 @@ source "$ROOT/version.env"
 CONF=${1:-release}
 SIGNING_MODE=${KASET_SIGNING:-dev}
 SKIP_MAIN_ASSETS=${KASET_SKIP_MAIN_ASSETS:-0}
+SKIP_SWIFT_BUILD=${KASET_SKIP_SWIFT_BUILD:-0}
 APP_NAME="Kaset"
+APP_DISPLAY_NAME=${KASET_APP_NAME:-$APP_NAME}
 RELEASE_BUNDLE_ID="com.sertacozercan.Kaset"
 # Debug bundles get their own sandbox container, so they never share the release
 # app's WebKit cookie jar, saved sign-in data, or preferences.
@@ -25,7 +27,7 @@ fi
 DEVELOPMENT_LOCALIZATION="en"
 MIN_MACOS_VERSION="15.4"
 BUILD_DIR="$ROOT/.build/app"
-APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
+APP_BUNDLE="$BUILD_DIR/$APP_DISPLAY_NAME.app"
 
 # App Intents: the compiler records the intents, entities, and App Shortcuts it sees as
 # "const values", which appintentsmetadataprocessor turns into Metadata.appintents.
@@ -68,10 +70,12 @@ build_product_dir() {
   # products directory (.build/out/Products/Release). Ask SwiftPM first so
   # the packaging script follows the active toolchain instead of assuming one
   # filesystem layout. Xcode 26/classic SwiftPM layouts are kept as fallbacks.
-  show_bin=$(swift build -c "$CONF" --arch "$arch" --show-bin-path 2>/dev/null || true)
-  if [[ -n "$show_bin" && -d "$show_bin" ]]; then
-    echo "$show_bin"
-    return 0
+  if [[ "$SKIP_SWIFT_BUILD" != "1" ]]; then
+    show_bin=$(swift build -c "$CONF" --arch "$arch" --show-bin-path 2>/dev/null || true)
+    if [[ -n "$show_bin" && -d "$show_bin" ]]; then
+      echo "$show_bin"
+      return 0
+    fi
   fi
 
   local dir_name
@@ -401,7 +405,9 @@ mkdir -p "$BUILD_DIR"
 # some SwiftPM layouts reuse one products directory for every --arch build.
 for ARCH in "${ARCH_LIST[@]}"; do
   echo "  → Building for $ARCH..."
-  swift build -c "$CONF" --arch "$ARCH" --product "$APP_NAME" "${APP_INTENTS_SWIFT_FLAGS[@]}"
+  if [[ "$SKIP_SWIFT_BUILD" != "1" ]]; then
+    swift build -c "$CONF" --arch "$ARCH" --product "$APP_NAME" "${APP_INTENTS_SWIFT_FLAGS[@]}"
+  fi
   stage_arch_product "$APP_NAME" "$ARCH"
   stage_app_intents_const_values "$ARCH"
 done
@@ -578,9 +584,9 @@ ${APP_LOCALIZATIONS_PLIST}
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>${APP_NAME}</string>
+    <string>${APP_DISPLAY_NAME}</string>
     <key>CFBundleDisplayName</key>
-    <string>${APP_NAME}</string>
+    <string>${APP_DISPLAY_NAME}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

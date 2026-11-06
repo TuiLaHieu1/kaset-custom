@@ -31,11 +31,8 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
     @State private var isAdjustingVolume = false
     @State private var showsVolumeOverlay = false
     @State private var resolvedArtist: Artist?
-    @State private var resolvedAlbum: Playlist?
     @State private var isResolvingArtist = false
-    @State private var isResolvingAlbum = false
     @State private var artistResolutionTask: Task<Void, Never>?
-    @State private var albumResolutionTask: Task<Void, Never>?
     @State private var airPlayAnchor = AirPlayPickerAnchor()
 
     var body: some View {
@@ -262,47 +259,13 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
             && !self.isCurrentArtistTarget
     }
 
-    private var canOpenCurrentAlbum: Bool {
-        self.playerService.currentTrack != nil
-            && self.navigationAction.openAlbum != nil
-            && (self.currentAlbumTarget != nil || (self.currentArtistSearchName != nil && self.playerService.ytMusicClient != nil))
-            && !self.isCurrentAlbumTarget
-            && !self.isResolvingCurrentRouteAlbum
-    }
-
     private var currentArtistTarget: Artist? {
         self.primaryNavigableArtist ?? self.resolvedArtist
-    }
-
-    private var currentAlbumTarget: Playlist? {
-        self.currentAlbumPlaylist ?? self.resolvedAlbum
-    }
-
-    private var isCurrentAlbumTarget: Bool {
-        guard let album = self.currentAlbumTarget else { return false }
-        return PlayerBarCurrentRoute.isAlbum(album, in: self.currentRouteAlbumIDs)
-    }
-
-    private var showsCurrentAlbumHoverOnly: Bool {
-        self.isCurrentAlbumTarget || self.isResolvingCurrentRouteAlbum
-    }
-
-    private var isResolvingCurrentRouteAlbum: Bool {
-        !self.currentRouteAlbumIDs.isEmpty && self.currentAlbumTarget == nil
     }
 
     private var isCurrentArtistTarget: Bool {
         guard let artist = self.currentArtistTarget else { return false }
         return PlayerBarCurrentRoute.isArtist(artist, routeArtistID: self.currentRouteArtistID)
-    }
-
-    private var currentAlbumPlaylist: Playlist? {
-        guard let track = self.playerService.currentTrack,
-              let album = track.album,
-              album.hasNavigableId
-        else { return nil }
-
-        return self.playlist(from: album, track: track)
     }
 
     private var primaryNavigableArtist: Artist? {
@@ -319,18 +282,6 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
             return String(localized: "Kaset")
         }
         return track.artistsDisplay.isEmpty ? String(localized: "Unknown Artist") : track.artistsDisplay
-    }
-
-    private func playlist(from album: Album, track: Song) -> Playlist {
-        Playlist(
-            id: album.id,
-            title: album.title,
-            description: nil,
-            thumbnailURL: album.thumbnailURL ?? track.thumbnailURL,
-            trackCount: album.trackCount,
-            author: Artist.inline(name: album.artistsDisplay, namespace: "album-artist"),
-            libraryTargetId: album.libraryTargetId
-        )
     }
 
     @ViewBuilder
@@ -832,9 +783,7 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
 
     private func prepareCurrentNavigationTargets() async {
         self.resolvedArtist = nil
-        self.resolvedAlbum = nil
         self.isResolvingArtist = false
-        self.isResolvingAlbum = false
 
         guard self.playerService.currentTrack != nil,
               let client = self.playerService.ytMusicClient
@@ -849,16 +798,6 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
             let artist = await self.resolveArtist(named: artistName, client: client)
             guard !Task.isCancelled, self.currentTitleIdentity == identity else { return }
             self.resolvedArtist = artist
-        }
-
-        if self.navigationAction.openAlbum != nil,
-           self.currentAlbumPlaylist == nil,
-           self.currentArtistSearchName != nil,
-           let track = self.playerService.currentTrack
-        {
-            let album = await self.resolveAlbum(for: track, client: client)
-            guard !Task.isCancelled, self.currentTitleIdentity == identity else { return }
-            self.resolvedAlbum = album
         }
     }
 
@@ -889,41 +828,10 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
         }
     }
 
-    private func openCurrentAlbum() {
-        guard self.canOpenCurrentAlbum else { return }
-        guard !self.isResolvingAlbum else { return }
-        HapticService.toggle()
-
-        if let album = self.currentAlbumTarget {
-            self.openAlbum(album, playsHaptic: false)
-            return
-        }
-
-        guard let track = self.playerService.currentTrack,
-              let client = self.playerService.ytMusicClient
-        else { return }
-
-        let identity = self.currentTitleIdentity
-        self.isResolvingAlbum = true
-
-        self.albumResolutionTask = Task {
-            let album = await self.resolveAlbum(for: track, client: client)
-            guard !Task.isCancelled, self.currentTitleIdentity == identity else { return }
-            self.resolvedAlbum = album
-            self.isResolvingAlbum = false
-
-            guard let album else { return }
-            self.openAlbum(album, playsHaptic: false)
-        }
-    }
-
     private func cancelNavigationResolution() {
         self.artistResolutionTask?.cancel()
-        self.albumResolutionTask?.cancel()
         self.artistResolutionTask = nil
-        self.albumResolutionTask = nil
         self.isResolvingArtist = false
-        self.isResolvingAlbum = false
     }
 
     private func openArtist(_ artist: Artist, playsHaptic: Bool = true) {
@@ -954,82 +862,13 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
         }
     }
 
-    private func resolveAlbum(for track: Song, client: any YTMusicClientProtocol) async -> Playlist? {
-        if let album = track.album,
-           let playlist = await self.resolveAlbum(named: album.title, fallbackTrack: track, client: client)
-        {
-            return playlist
-        }
-
-        do {
-            guard let query = self.searchQuery(parts: [track.title, self.primaryArtistName(in: track)]) else { return nil }
-
-            let response = try await client.searchSongsWithPagination(query: query)
-            let matchedSong = response.songs.first { $0.videoId == track.videoId }
-                ?? response.songs.first { song in
-                    self.matchesSearchResultTitle(song.title, query: track.title)
-                        && self.matchesTrackArtist(song, fallbackTrack: track)
-                }
-
-            guard let album = matchedSong?.album, album.hasNavigableId else { return nil }
-            return self.playlist(from: album, track: matchedSong ?? track)
-        } catch {
-            DiagnosticsLogger.ui.error("Failed to resolve player bar album from song search: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
-    private func resolveAlbum(
-        named title: String,
-        fallbackTrack track: Song,
-        client: any YTMusicClientProtocol
-    ) async -> Playlist? {
-        guard let query = self.searchQuery(parts: [title, self.primaryArtistName(in: track)]),
-              let artistName = self.primaryArtistName(in: track)
-        else { return nil }
-
-        do {
-            let response = try await client.searchAlbums(query: query)
-            guard let album = response.albums.first(where: { album in
-                album.hasNavigableId
-                    && self.matchesSearchResultTitle(album.title, query: title)
-                    && self.matchesAlbumArtist(album, artistName: artistName)
-            }) else {
-                return nil
-            }
-
-            return self.playlist(from: album, track: track)
-        } catch {
-            DiagnosticsLogger.ui.error("Failed to resolve player bar album: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
     private func primaryArtistName(in track: Song) -> String? {
         track.artists.lazy.compactMap { self.trimmedNonEmpty($0.name) }.first
-    }
-
-    private func searchQuery(parts: [String?]) -> String? {
-        let query = parts.compactMap { part in
-            part.flatMap(self.trimmedNonEmpty)
-        }.joined(separator: " ")
-
-        return self.trimmedNonEmpty(query)
     }
 
     private func trimmedNonEmpty(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func matchesTrackArtist(_ song: Song, fallbackTrack track: Song) -> Bool {
-        guard let artistName = self.primaryArtistName(in: track) else { return false }
-        return song.artists.contains { self.matchesSearchResultTitle($0.name, query: artistName) }
-    }
-
-    private func matchesAlbumArtist(_ album: Album, artistName: String) -> Bool {
-        guard let artists = album.artists else { return false }
-        return artists.contains { self.matchesSearchResultTitle($0.name, query: artistName) }
     }
 
     private func matchesSearchResultTitle(_ title: String, query: String) -> Bool {

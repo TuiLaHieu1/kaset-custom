@@ -463,6 +463,7 @@ struct YouTubePlayerBar: View {
                     .foregroundStyle(self.youtubePlayer.surfaceLocation == .floating ? Self.brandAccent : .primary)
                     .contentTransition(.symbolEffect(.replace))
             }
+            .help(String(localized: "Picture in Picture (⌘P)"))
             .disabled(self.youtubePlayer.currentVideo == nil || self.youtubePlayer.isWindowFullscreen)
         }
         .padding(.trailing, 12)

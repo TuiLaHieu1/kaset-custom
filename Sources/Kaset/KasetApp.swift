@@ -474,6 +474,13 @@ struct KasetApp: App {
                 }
                 .keyboardShortcut(self.playbackShortcut("f", modifiers: []))
                 .disabled(self.shouldDisableFullScreenCommand)
+
+                // Picture in Picture - ⌘P
+                Button(self.pictureInPictureCommandTitle) {
+                    self.togglePictureInPictureAction()
+                }
+                .keyboardShortcut("p", modifiers: .command)
+                .disabled(self.shouldDisablePictureInPictureCommand)
             }
 
             // Navigation commands - replace default sidebar toggle
@@ -795,6 +802,55 @@ struct KasetApp: App {
             HapticService.toggle()
             withAnimation(AppAnimation.standard) {
                 self.playerService.showFullScreenPlayer.toggle()
+            }
+        }
+    }
+
+    private var pictureInPictureCommandTitle: String {
+        if self.settings.appSource == .video {
+            return self.youtubePlayerService.surfaceLocation == .floating
+                ? String(localized: "Pop video back into Kaset")
+                : String(localized: "Picture in Picture")
+        }
+        if self.playerService.showVideo {
+            return String(localized: "Pop video back into Kaset")
+        }
+        return self.playerService.isMiniPlayerVisible
+            ? String(localized: "Return to Kaset")
+            : String(localized: "Picture in Picture")
+    }
+
+    private var shouldDisablePictureInPictureCommand: Bool {
+        if self.settings.appSource == .video {
+            return self.youtubePlayerService.currentVideo == nil || self.youtubePlayerService.isWindowFullscreen
+        }
+        return self.playerService.currentTrack == nil && !self.playerService.isMiniPlayerVisible
+    }
+
+    private func togglePictureInPictureAction() {
+        if self.settings.appSource == .video {
+            guard !self.youtubePlayerService.isWindowFullscreen else { return }
+            HapticService.toggle()
+            if self.youtubePlayerService.surfaceLocation == .floating {
+                self.youtubePlayerService.requestPopIn()
+            } else {
+                self.youtubePlayerService.popOutToWindow()
+            }
+        } else {
+            HapticService.toggle()
+            if self.playerService.showVideo {
+                withAnimation(AppAnimation.standard) {
+                    self.playerService.showVideo = false
+                }
+            } else if self.playerService.showFullScreenPlayer {
+                withAnimation(AppAnimation.standard) {
+                    self.playerService.showFullScreenPlayer = false
+                }
+                _ = self.playerService.toggleMiniPlayer(mode: .switchFromMainWindow)
+            } else if self.playerService.isMiniPlayerVisible {
+                _ = self.playerService.closeMiniPlayer(restoringMainWindow: true)
+            } else {
+                self.playerService.openMiniPlayer(mode: .switchFromMainWindow)
             }
         }
     }

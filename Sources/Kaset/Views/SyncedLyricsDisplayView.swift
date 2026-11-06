@@ -14,8 +14,6 @@ struct SyncedLyricsDisplayView: View {
     var style: PresentationStyle = .sidebar
     let onSeek: (Int) -> Void
 
-    @State private var currentLineId: UUID?
-
     private var effectiveDisplayTimeMs: Int {
         self.displayTimeMs ?? -1
     }
@@ -47,18 +45,18 @@ struct SyncedLyricsDisplayView: View {
                 .padding(.horizontal, self.isFullScreen ? 32 : 24)
             }
             .scrollIndicators(.hidden)
-            .onChange(of: self.currentLineIndex, initial: true) { _, newLineIndex in
-                guard let newLineIndex,
-                      self.lyrics.lines.indices.contains(newLineIndex)
+            .task(id: self.currentLineIndex) {
+                guard let currentLineIndex = self.currentLineIndex,
+                      self.lyrics.lines.indices.contains(currentLineIndex)
                 else { return }
 
-                let newId = self.lyrics.lines[newLineIndex].id
-                guard newId != self.currentLineId else { return }
+                let targetId = self.lyrics.lines[currentLineIndex].id
+                await Task.yield()
+                guard !Task.isCancelled else { return }
 
-                self.currentLineId = newId
                 withAnimation(.spring(response: 0.75, dampingFraction: 0.85)) {
                     // Target center for natural scrolling
-                    proxy.scrollTo(newId, anchor: .center)
+                    proxy.scrollTo(targetId, anchor: .center)
                 }
             }
         }

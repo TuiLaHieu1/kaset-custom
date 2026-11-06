@@ -571,6 +571,15 @@ private struct YouTubeVideoWindowContent: View {
             ZStack(alignment: .bottom) {
                 YouTubeWatchSurfaceView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay {
+                        if self.youtubePlayer.isPlaybackLoading,
+                           let currentVideo = self.youtubePlayer.currentVideo
+                        {
+                            YouTubeWatchLoadingOverlay(thumbnailURL: currentVideo.thumbnailURL)
+                                .transition(.opacity)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: self.youtubePlayer.isPlaybackLoading)
 
                 if self.showsWindowChrome {
                     // The full player bar — same items as the main window, plus

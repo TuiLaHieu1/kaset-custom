@@ -168,6 +168,14 @@ struct YouTubeWatchView: View {
             && self.youtubePlayer.surfaceLocation == .inline
     }
 
+    /// Whether the active playback is in the loading / buffering stage before ready media arrives.
+    private var isPlaybackLoading: Bool {
+        guard self.youtubePlayer.currentVideo?.videoId == self.video.videoId else {
+            return false
+        }
+        return self.youtubePlayer.isPlaybackLoading
+    }
+
     /// Whether the player controls sit on the docked video instead of the
     /// bottom bar (Settings → YouTube → Show Controls on Video). Only while the
     /// strip they occupy is on screen: scrolled down to the comments, or with a
@@ -201,6 +209,13 @@ struct YouTubeWatchView: View {
             YouTubeWatchSurfaceView()
                 .accessibilityIdentifier(AccessibilityID.YouTubeContent.watchSurface)
                 .aspectRatio(16 / 9, contentMode: .fit)
+                .overlay {
+                    if self.isPlaybackLoading {
+                        YouTubeWatchLoadingOverlay(thumbnailURL: self.video.thumbnailURL)
+                            .transition(.opacity)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.3), value: self.isPlaybackLoading)
                 .youtubeInlineVideoControls(isEnabled: self.showsControlsOnVideo)
                 .clipShape(.rect(cornerRadius: 12))
         } else if self.playsInFloatingWindow {
@@ -235,25 +250,31 @@ struct YouTubeWatchView: View {
             Button {
                 self.startOrAdoptPlayback()
             } label: {
-                CachedAsyncImage(
-                    url: self.video.thumbnailURL,
-                    targetSize: CGSize(width: 1280, height: 720)
-                ) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(.black)
+                if self.isPlaybackLoading {
+                    YouTubeWatchLoadingOverlay(thumbnailURL: self.video.thumbnailURL)
+                        .aspectRatio(16 / 9, contentMode: .fit)
+                        .clipShape(.rect(cornerRadius: 12))
+                } else {
+                    CachedAsyncImage(
+                        url: self.video.thumbnailURL,
+                        targetSize: CGSize(width: 1280, height: 720)
+                    ) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Rectangle().fill(.black)
+                    }
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .overlay {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 56))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .shadow(radius: 8)
+                    }
+                    .clipShape(.rect(cornerRadius: 12))
+                    .contentShape(Rectangle())
                 }
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .overlay {
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .shadow(radius: 8)
-                }
-                .clipShape(.rect(cornerRadius: 12))
-                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "Play video"))
@@ -834,46 +855,6 @@ private struct ChapterCard: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
         return String(format: "%d:%02d", minutes, seconds)
-    }
-}
-
-// MARK: - RelatedVideoRow
-
-/// Compact related-rail row sized for the right column.
-private struct RelatedVideoRow: View {
-    let video: YouTubeVideo
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            VideoThumbnailView(video: self.video)
-                .frame(width: 140)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(self.video.title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                if let channelName = self.video.channelName {
-                    Text(channelName)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                if let viewCountText = self.video.viewCountText {
-                    Text(viewCountText)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }
 
