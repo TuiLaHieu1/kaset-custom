@@ -1,18 +1,14 @@
 import Foundation
-import Sparkle
 
 // MARK: - UpdaterService
 
-/// Manages application updates via Sparkle framework.
+/// Manages application updates.
 ///
-/// For Kaset Custom, automatic update checks are disabled and isolated from
-/// upstream repositories to prevent overwriting custom features.
+/// For Kaset Custom, updates are managed manually via Git / local builds
+/// without external updater frameworks.
 @MainActor
 @Observable
 final class UpdaterService {
-    /// The Sparkle updater controller that manages the update lifecycle.
-    private let updaterController: SPUStandardUpdaterController
-
     /// Whether automatic update checks are enabled.
     ///
     /// Disabled for Kaset Custom to prevent unauthorized background update checks.
@@ -35,17 +31,8 @@ final class UpdaterService {
     }
 
     /// Initializes the updater service in isolated mode.
-    ///
-    /// `startingUpdater` is set to `false` to ensure no background network requests
-    /// or checks occur on application launch.
     init() {
-        self.updaterController = SPUStandardUpdaterController(
-            startingUpdater: false,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
-
-        DiagnosticsLogger.updater.info("UpdaterService initialized in isolated mode")
+        DiagnosticsLogger.updater.info("UpdaterService initialized in isolated mode (zero-dependency)")
     }
 
     /// Manually triggers an update check.
@@ -56,6 +43,5 @@ final class UpdaterService {
             DiagnosticsLogger.updater.info("Manual update check ignored: Kaset Custom updater is isolated")
             return
         }
-        self.updaterController.checkForUpdates(nil)
     }
 }

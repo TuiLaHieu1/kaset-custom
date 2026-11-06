@@ -297,6 +297,7 @@ struct SimpleLyricsView: View {
                     lyrics: synced,
                     currentLineIndex: self.playerService.currentLyricsLineIndex,
                     displayTimeMs: self.playerService.currentLyricsDisplayTimeMs,
+                    style: self.showsPanel ? .sidebar : .fullScreen,
                     onSeek: { timeMs in
                         Task { await self.playerService.seek(to: Double(timeMs) / 1000.0) }
                     }
@@ -325,21 +326,23 @@ struct SimpleLyricsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text(lyrics.text)
-                    .font(.system(size: 15, weight: .medium))
-                    .lineSpacing(8)
-                    .foregroundStyle(.primary)
+                    .font(.system(size: self.showsPanel ? 15 : 28, weight: self.showsPanel ? .medium : .bold))
+                    .lineSpacing(self.showsPanel ? 8 : 16)
+                    .foregroundStyle(self.showsPanel ? Color.primary : Color.white.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
+                    .padding(.horizontal, self.showsPanel ? 16 : 32)
+                    .padding(.vertical, self.showsPanel ? 20 : 40)
 
                 if let source = lyrics.source {
                     Divider()
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, self.showsPanel ? 16 : 32)
 
                     Text(source)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, self.showsPanel ? 16 : 32)
                         .padding(.vertical, 12)
                 }
             }
@@ -386,8 +389,6 @@ struct SimpleLyricsView: View {
 
     private func updateLyricsPolling(for result: LyricResult) {
         if case let .synced(synced) = result {
-            self.playerService.currentLyricsLineIndex = nil
-            self.playerService.currentLyricsDisplayTimeMs = nil
             SingletonPlayerWebView.shared.startLyricsPoll(lineRanges: synced.bridgeLineRanges)
         } else {
             SingletonPlayerWebView.shared.stopLyricsPoll()

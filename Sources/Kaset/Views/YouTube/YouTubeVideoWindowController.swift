@@ -90,11 +90,9 @@ final class YouTubeVideoWindowController {
     private var isClosing = false
     private let frameAutosaveKey = "KasetYouTubeVideoWindow"
 
-    /// Floor for the video content area. Below roughly this size the macOS 26
-    /// `NSHostingView` safe-area corner-inset recompute can raise an uncaught
-    /// `NSException` during the display-cycle commit and abort the app, so the
-    /// resize guard never lets the content shrink past it.
-    private static let minContentSize = NSSize(width: 512, height: 288)
+    /// Floor for the video content area. Allows shrinking down to a compact
+    /// Picture-in-Picture size while maintaining 16:9 proportions.
+    private static let minContentSize = NSSize(width: 288, height: 162)
 
     /// Enforces the 16:9 ratio and the `minContentSize` floor on every resize.
     /// Strong reference because `NSWindow.delegate` is weak; kept for the

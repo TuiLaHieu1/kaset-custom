@@ -11,6 +11,7 @@ struct PlayerBarArtworkView<Content: View>: View {
     var glowTargetSize: CGSize?
     var showsHoverOverlay = true
     var isLoading = false
+    var overlaySystemImage: String = "music.pages.fill"
     @ViewBuilder var content: () -> Content
 
     @Environment(\.colorScheme) private var colorScheme
@@ -41,7 +42,7 @@ struct PlayerBarArtworkView<Content: View>: View {
                             .controlSize(.small)
                             .scaleEffect(0.55)
                     } else {
-                        Image(systemName: "music.pages.fill")
+                        Image(systemName: self.overlaySystemImage)
                             .font(.system(size: self.iconSize, weight: .semibold))
                             .foregroundStyle(.primary)
                     }

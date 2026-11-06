@@ -21,8 +21,8 @@ struct UpdaterServiceIsolationTests {
         #expect(!service.canCheckForUpdates)
     }
 
-    @Test("App configuration isolates feed URL and disables automatic checks")
-    func appConfigurationIsIsolated() throws {
+    @Test("App configuration has no Sparkle update settings")
+    func appConfigurationHasNoSparkleSettings() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent() // KasetTests
             .deletingLastPathComponent() // Tests
@@ -31,17 +31,9 @@ struct UpdaterServiceIsolationTests {
         let data = try Data(contentsOf: plistURL)
         let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
 
-        let feedURL = plist?["SUFeedURL"] as? String
-        #expect(feedURL == "https://raw.githubusercontent.com/TuiLaHieu1/kaset-custom/main/appcast.xml")
-        #expect(feedURL?.contains("sozercan/kaset") == false)
-
-        let autoChecks = plist?["SUEnableAutomaticChecks"] as? Bool
-        #expect(autoChecks == false)
-
-        let autoUpdates = plist?["SUAllowsAutomaticUpdates"] as? Bool
-        #expect(autoUpdates == false)
-
-        let publicEDKey = plist?["SUPublicEDKey"] as? String
-        #expect(publicEDKey == nil)
+        #expect(plist?["SUFeedURL"] == nil)
+        #expect(plist?["SUEnableAutomaticChecks"] == nil)
+        #expect(plist?["SUAllowsAutomaticUpdates"] == nil)
+        #expect(plist?["SUEnableInstallerLauncherService"] == nil)
     }
 }

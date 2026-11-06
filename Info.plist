@@ -17,26 +17,6 @@
 		</dict>
 	</array>
 
-	<!-- Sparkle Auto-Update Configuration (Kaset Custom) -->
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/TuiLaHieu1/kaset-custom/main/appcast.xml</string>
-
-	<!-- Dedicated public EdDSA key for Kaset Custom will be configured here when generated -->
-	<!-- <key>SUPublicEDKey</key> -->
-	<!-- <string>PLACEHOLDER_FOR_FUTURE_CUSTOM_EDDSA_PUBLIC_KEY</string> -->
-
-	<key>SUEnableAutomaticChecks</key>
-	<false/>
-
-	<key>SUScheduledCheckInterval</key>
-	<integer>86400</integer>
-
-	<key>SUAllowsAutomaticUpdates</key>
-	<false/>
-
-	<key>SUEnableInstallerLauncherService</key>
-	<true/>
-
 	<!-- AppleScript Support -->
 	<key>NSAppleScriptEnabled</key>
 	<true/>

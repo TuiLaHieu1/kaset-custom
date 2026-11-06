@@ -25,9 +25,6 @@ while [[ $# -gt 0 ]]; do
 Usage: Scripts/verify-release-app.sh [--require-developer-id] [--bundle-id ID] [path/to/Kaset.app]
 
 Checks:
-  - Info.plist contains Sparkle's sandboxed installer launcher key
-  - sandbox entitlements include Sparkle's installer/status mach lookups
-  - Sparkle Installer.xpc is embedded
   - App Intents metadata and App Shortcut phrases are embedded
   - codesign verification succeeds
   - optional Developer ID Application signing identity is used
@@ -82,13 +79,6 @@ bundle_id = info.get("CFBundleIdentifier")
 if bundle_id != expected_bundle_id:
     errors.append(f"CFBundleIdentifier must be {expected_bundle_id}, found {bundle_id!r}")
 
-if info.get("SUEnableInstallerLauncherService") is not True:
-    errors.append("SUEnableInstallerLauncherService must be true for sandboxed Sparkle updates")
-
-installer_xpc = app_path / "Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc"
-if not installer_xpc.exists():
-    errors.append(f"Sparkle Installer.xpc is missing at {installer_xpc}")
-
 # Shortcuts, Siri, and Spotlight discover App Intents only from this generated metadata.
 app_intents_metadata = app_path / "Contents/Resources/Metadata.appintents/extract.actionsdata"
 if not app_intents_metadata.exists():
@@ -99,21 +89,7 @@ app_shortcut_phrases = app_path / "Contents/Resources/en.lproj/AppShortcuts.stri
 if not app_shortcut_phrases.exists():
     errors.append(f"App Shortcut phrases are missing at {app_shortcut_phrases}")
 
-if entitlements.get("com.apple.security.app-sandbox") is True:
-    expected_mach_services = {
-        f"{expected_bundle_id}-spks",
-        f"{expected_bundle_id}-spki",
-    }
-    actual_mach_services = set(
-        entitlements.get("com.apple.security.temporary-exception.mach-lookup.global-name") or []
-    )
-    missing = sorted(expected_mach_services - actual_mach_services)
-    if missing:
-        errors.append(
-            "Sandboxed Sparkle updates require mach lookup exceptions: "
-            + ", ".join(missing)
-        )
-else:
+if entitlements.get("com.apple.security.app-sandbox") is not True:
     errors.append("Kaset release app must be sandboxed")
 
 if errors:

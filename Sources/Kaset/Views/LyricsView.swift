@@ -101,8 +101,6 @@ struct LyricsView: View {
 
     private func updateLyricsPolling(for result: LyricResult) {
         if case let .synced(synced) = result {
-            self.playerService.currentLyricsLineIndex = nil
-            self.playerService.currentLyricsDisplayTimeMs = nil
             SingletonPlayerWebView.shared.startLyricsPoll(lineRanges: synced.bridgeLineRanges)
         } else {
             SingletonPlayerWebView.shared.stopLyricsPoll()
@@ -209,6 +207,7 @@ struct LyricsView: View {
                 lyrics: synced,
                 currentLineIndex: self.playerService.currentLyricsLineIndex,
                 displayTimeMs: self.playerService.currentLyricsDisplayTimeMs,
+                style: self.showsPanel ? .sidebar : .fullScreen,
                 onSeek: { timeMs in
                     Task { await self.playerService.seek(to: Double(timeMs) / 1000.0) }
                 }
@@ -221,41 +220,40 @@ struct LyricsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // AI Explanation section (streaming or complete)
-                if self.isExplaining, let partial = partialSummary {
+                if self.isExplaining, let partial = self.partialSummary {
                     self.streamingExplanationSection(partial)
                     Divider()
                         .padding(.vertical, 12)
-                } else if self.showExplanation, let summary = lyricsSummary {
+                } else if self.showExplanation, let summary = self.lyricsSummary {
                     self.explanationSection(summary)
                     Divider()
                         .padding(.vertical, 12)
-                } else if let error = explanationError {
+                } else if let error = self.explanationError {
                     self.errorSection(error)
                     Divider()
                         .padding(.vertical, 12)
                 }
 
-                // Lyrics text. Without the panel (Now Playing), match the synced lyrics'
-                // centered type; plain lyrics have no timing, so no line is highlighted.
+                // Lyrics text. Without the panel (Now Playing / FullScreen), use large, bold, leading typography matching Apple TV.
                 Text(lyrics.text)
-                    .font(.system(size: self.showsPanel ? 15 : 20, weight: self.showsPanel ? .medium : .semibold))
-                    .lineSpacing(self.showsPanel ? 8 : 12)
-                    .foregroundStyle(self.showsPanel ? .primary : .secondary)
-                    .multilineTextAlignment(self.showsPanel ? .leading : .center)
-                    .frame(maxWidth: .infinity, alignment: self.showsPanel ? .leading : .center)
+                    .font(.system(size: self.showsPanel ? 15 : 28, weight: self.showsPanel ? .medium : .bold))
+                    .lineSpacing(self.showsPanel ? 8 : 16)
+                    .foregroundStyle(self.showsPanel ? Color.primary : Color.white.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
-                    .padding(.horizontal, self.showsPanel ? 16 : 24)
-                    .padding(.vertical, 20)
+                    .padding(.horizontal, self.showsPanel ? 16 : 32)
+                    .padding(.vertical, self.showsPanel ? 20 : 40)
 
                 // Source attribution
                 if let source = lyrics.source {
                     Divider()
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, self.showsPanel ? 16 : 32)
 
                     Text(source)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, self.showsPanel ? 16 : 32)
                         .padding(.vertical, 12)
                 }
             }
@@ -561,13 +559,4 @@ struct LyricsView: View {
         self.partialSummary = nil
         self.isExplaining = false
     }
-}
-
-@available(macOS 26.0, *)
-#Preview {
-    let authService = AuthService()
-    let client = YTMusicClient(authService: authService, webKitManager: .shared)
-    LyricsView(client: client)
-        .environment(PlayerService())
-        .frame(height: 600)
 }

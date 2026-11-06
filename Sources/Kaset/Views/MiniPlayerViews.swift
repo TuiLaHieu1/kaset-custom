@@ -231,7 +231,7 @@ struct MiniPlayerWindow: View {
             }
 
             MiniPlayerSeekSection(state: self.seekState)
-            self.transportControls(playSize: 25, sideSize: 16, spacing: 30)
+            self.transportControls(playSize: 25, sideSize: 16, spacing: 24)
         }
         .padding(.top, Self.Layout.headerTopInset)
         .padding(.horizontal, 16)

@@ -62,6 +62,11 @@ struct YouTubePlayerBarTests {
         #expect(signedIn - signedOut == 34)
         #expect(pinnedSignedIn - signedIn == 34)
         #expect(pinnedSignedOut == signedIn)
+
+        let compactNormal = YouTubePlayerBar.compactOptionsWidth(showsFloatOnTopControl: false)
+        let compactPinned = YouTubePlayerBar.compactOptionsWidth(showsFloatOnTopControl: true)
+        #expect(compactPinned - compactNormal == 34)
+        #expect(compactPinned < signedIn)
     }
 
     @Test("Detached controls stay visible while the volume overlay is presented")

@@ -36,8 +36,8 @@ struct FullScreenPlayerView: View {
                     if let sidePane = self.sidePane {
                         self.sidePaneView(sidePane)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.top, 56)
-                            .padding(.bottom, 56)
+                            .padding(.top, 48)
+                            .padding(.bottom, 48)
                             .padding(.trailing, 48)
                             .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
@@ -68,9 +68,9 @@ struct FullScreenPlayerView: View {
 
     static func artworkSize(for size: CGSize, columnWidth: CGFloat) -> CGFloat {
         // Leave room below the artwork for title, seek bar and controls.
-        let byHeight = size.height - 330
+        let byHeight = size.height - 350
         let byWidth = columnWidth - 120
-        return max(180, min(byHeight, byWidth, 560))
+        return max(180, min(byHeight, byWidth, 540))
     }
 
     // MARK: - Views
@@ -80,15 +80,25 @@ struct FullScreenPlayerView: View {
             Color.black
 
             if let track = self.playerService.currentTrack {
+                // Primary blurred atmosphere
                 SongThumbnailView(song: track, size: 320, cornerRadius: 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .scaleEffect(1.8)
-                    .blur(radius: 90)
+                    .scaleEffect(2.4)
+                    .blur(radius: 110)
                     .opacity(0.85)
+                    .clipped()
+
+                // Second blurred layer for Apple TV-style color bloom
+                SongThumbnailView(song: track, size: 240, cornerRadius: 0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scaleEffect(1.6)
+                    .blur(radius: 80)
+                    .opacity(0.45)
+                    .blendMode(.plusLighter)
                     .clipped()
             }
 
-            Color.black.opacity(0.25)
+            Color.black.opacity(0.24)
         }
         .ignoresSafeArea()
         .overlay { WindowDragHandle() }
@@ -98,8 +108,11 @@ struct FullScreenPlayerView: View {
         VStack(alignment: .leading, spacing: 0) {
             self.artwork(size: artworkSize)
 
-            self.trackInfo(fontSize: max(14, min(20, artworkSize * 0.05)))
-                .padding(.top, 16)
+            self.trackInfo(
+                titleSize: max(20, min(30, artworkSize * 0.08)),
+                subtitleSize: max(14, min(20, artworkSize * 0.052))
+            )
+            .padding(.top, 20)
 
             Group {
                 if self.playerService.isShowingAd {
@@ -112,7 +125,7 @@ struct FullScreenPlayerView: View {
             }
             // Same height for both, so the controls below don't jump when an ad starts.
             .frame(height: 36, alignment: .top)
-            .padding(.top, 18)
+            .padding(.top, 20)
 
             self.transportControls
                 .padding(.top, 14)
@@ -123,9 +136,9 @@ struct FullScreenPlayerView: View {
     private func artwork(size: CGFloat) -> some View {
         Group {
             if let track = self.playerService.currentTrack {
-                SongThumbnailView(song: track, size: size, cornerRadius: 10)
+                SongThumbnailView(song: track, size: size, cornerRadius: 14)
             } else {
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(.white.opacity(0.12))
                     .overlay {
                         Image(systemName: "music.note")
@@ -135,22 +148,22 @@ struct FullScreenPlayerView: View {
                     .frame(width: size, height: size)
             }
         }
-        .shadow(color: .black.opacity(0.4), radius: 24, y: 10)
+        .shadow(color: .black.opacity(0.45), radius: 28, y: 14)
     }
 
-    private func trackInfo(fontSize: CGFloat) -> some View {
+    private func trackInfo(titleSize: CGFloat, subtitleSize: CGFloat) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(self.playerService.currentTrack?.title ?? String(localized: "Not Playing"))
-                    .font(.system(size: fontSize, weight: .semibold))
+                    .font(.system(size: titleSize, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
                 // Closes the full screen view and lets the visible player bar open the artist page.
                 Button(action: self.openArtist) {
                     Text(self.subtitle)
-                        .font(.system(size: fontSize))
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.system(size: subtitleSize, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.68))
                         .lineLimit(1)
                 }
                 .buttonStyle(.plain)
@@ -299,6 +312,15 @@ struct FullScreenPlayerView: View {
         .compatGlass(interactive: true, in: .capsule)
         .padding(.leading, Self.windowControlsLeading)
         .padding(.top, Self.chromeInset)
+        .overlay {
+            // Invisible button to capture 'F' key shortcut to close full screen player
+            Button(action: self.close) {
+                EmptyView()
+            }
+            .keyboardShortcut("f", modifiers: [])
+            .opacity(0)
+            .allowsHitTesting(false)
+        }
     }
 
     private var sidePaneToggles: some View {
@@ -404,6 +426,7 @@ struct FullScreenPlayerView: View {
     }
 
     private func close() {
+        HapticService.toggle()
         withAnimation(AppAnimation.standard) {
             self.playerService.showFullScreenPlayer = false
         }

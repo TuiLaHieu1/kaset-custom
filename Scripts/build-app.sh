@@ -485,34 +485,6 @@ else
   echo "⚠️  Warning: $ICON_SOURCE or $APP_ASSET_CATALOG not found. App will have incomplete assets."
 fi
 
-# ── Sparkle.framework ────────────────────────────────────────────────────────
-
-SPARKLE_FRAMEWORK=""
-for arch in "${ARCH_LIST[@]}"; do
-  CANDIDATE_DIR=$(build_product_dir "$arch")
-  if SPARKLE_FRAMEWORK=$(find_framework_in_product_dir "$CANDIDATE_DIR" "Sparkle.framework"); then
-    break
-  fi
-  SPARKLE_FRAMEWORK=""
-done
-if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
-  for CANDIDATE_DIR in ".build/$CONF" ".build/$CONF/PackageFrameworks" ".build/$CONF/ExecutableModules"; do
-    if [[ -d "$CANDIDATE_DIR/Sparkle.framework" ]]; then
-      SPARKLE_FRAMEWORK="$CANDIDATE_DIR/Sparkle.framework"
-      break
-    fi
-  done
-fi
-
-if [[ -n "$SPARKLE_FRAMEWORK" ]]; then
-  echo "✨ Embedding Sparkle.framework..."
-  cp -R "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
-  chmod -R a+rX "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
-  install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || true
-else
-  echo "WARN: Sparkle.framework not found in build output. Auto-updates will not work."
-fi
-
 # ── SwiftPM resource bundles ──────────────────────────────────────────────────
 # Kaset_Kaset.bundle contains Assets.xcassets compiled for Bundle.module.
 # It is kept separate from the top-level Assets.car produced above.
@@ -641,21 +613,6 @@ ${APP_LOCALIZATIONS_PLIST}
         </dict>
     </array>
 
-    <!-- Sparkle Auto-Update Configuration (Kaset Custom) -->
-    <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/TuiLaHieu1/kaset-custom/main/appcast.xml</string>
-    <!-- Dedicated public EdDSA key for Kaset Custom will be configured here when generated -->
-    <!-- <key>SUPublicEDKey</key> -->
-    <!-- <string>PLACEHOLDER_FOR_FUTURE_CUSTOM_EDDSA_PUBLIC_KEY</string> -->
-    <key>SUEnableAutomaticChecks</key>
-    <false/>
-    <key>SUScheduledCheckInterval</key>
-    <integer>86400</integer>
-    <key>SUAllowsAutomaticUpdates</key>
-    <false/>
-    <key>SUEnableInstallerLauncherService</key>
-    <true/>
-
     <!-- AppleScript Support -->
     <key>NSAppleScriptEnabled</key>
     <true/>
@@ -738,35 +695,8 @@ esac
 
 resign() { codesign "${CODESIGN_ARGS[@]}" "$1"; }
 
-# Sign Sparkle components innermost-first
-SPARKLE="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
-if [[ -d "$SPARKLE" ]]; then
-  echo "  → Signing Sparkle.framework..."
-  [[ -f "$SPARKLE/Versions/B/Sparkle" ]] && resign "$SPARKLE/Versions/B/Sparkle"
-  [[ -f "$SPARKLE/Versions/B/Autoupdate" ]] && resign "$SPARKLE/Versions/B/Autoupdate"
-  [[ -d "$SPARKLE/Versions/B/Updater.app" ]] && {
-    [[ -f "$SPARKLE/Versions/B/Updater.app/Contents/MacOS/Updater" ]] && resign "$SPARKLE/Versions/B/Updater.app/Contents/MacOS/Updater"
-    resign "$SPARKLE/Versions/B/Updater.app"
-  }
-  [[ -d "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" ]] && {
-    [[ -f "$SPARKLE/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader" ]] && resign "$SPARKLE/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader"
-    resign "$SPARKLE/Versions/B/XPCServices/Downloader.xpc"
-  }
-  [[ -d "$SPARKLE/Versions/B/XPCServices/Installer.xpc" ]] && {
-    [[ -f "$SPARKLE/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer" ]] && resign "$SPARKLE/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer"
-    resign "$SPARKLE/Versions/B/XPCServices/Installer.xpc"
-  }
-  resign "$SPARKLE/Versions/B" 2>/dev/null || true
-  resign "$SPARKLE"
-fi
-
 if [[ -f "$ROOT/Kaset.entitlements" ]]; then
   ENTITLEMENTS="$ROOT/Kaset.entitlements"
-  if [[ "$BUNDLE_ID" != "$RELEASE_BUNDLE_ID" ]]; then
-    # Sparkle's installer services are named after the bundle identifier.
-    ENTITLEMENTS="$BUILD_DIR/Kaset.entitlements"
-    sed "s/${RELEASE_BUNDLE_ID//./\\.}-sp/${BUNDLE_ID}-sp/g" "$ROOT/Kaset.entitlements" > "$ENTITLEMENTS"
-  fi
   codesign "${CODESIGN_ARGS[@]}" --entitlements "$ENTITLEMENTS" "$APP_BUNDLE"
 else
   codesign "${CODESIGN_ARGS[@]}" "$APP_BUNDLE"

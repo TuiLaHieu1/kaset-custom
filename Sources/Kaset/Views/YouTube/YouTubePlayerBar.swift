@@ -53,8 +53,12 @@ struct YouTubePlayerBar: View {
     var body: some View {
         CompatGlassContainer(spacing: 0) {
             GeometryReader { proxy in
+                let isCompactDetached = self.isDetachedWindow && proxy.size.width < Self.compactOptionsBreakpoint
                 let usesCompactDetails = proxy.size.width <= PlayerBarLayout.compactDetailsBreakpoint
                 let hidesDetails = proxy.size.width <= self.hiddenVideoDetailsBreakpoint
+                let optionsWidth = isCompactDetached
+                    ? Self.compactOptionsWidth(showsFloatOnTopControl: self.showsFloatOnTopControl)
+                    : self.youtubeOptionsWidth
 
                 HStack(spacing: 10) {
                     if !hidesDetails {
@@ -72,8 +76,8 @@ struct YouTubePlayerBar: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
 
-                    self.youtubeOptionsSection
-                        .frame(width: self.youtubeOptionsWidth, height: 52)
+                    self.youtubeOptionsSection(isCompact: isCompactDetached)
+                        .frame(width: optionsWidth, height: 52)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -123,34 +127,41 @@ struct YouTubePlayerBar: View {
 
     private func videoDetailsSection(usesCompactDetails: Bool) -> some View {
         HStack(spacing: 8) {
-            PlayerBarArtworkView(
-                width: 57,
-                height: 32,
-                cornerRadius: 6,
-                glowSources: self.currentVideoGlowSources,
-                glowIdentity: self.currentVideoGlowIdentity,
-                glowTargetSize: CGSize(width: 64, height: 36),
-                showsHoverOverlay: false
-            ) {
-                CachedAsyncImage(
-                    url: self.youtubePlayer.currentVideo?.thumbnailURL,
-                    targetSize: CGSize(width: 64, height: 36)
-                ) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(.quaternary)
-                        .overlay {
-                            Image(systemName: "play.rectangle")
-                                .font(.system(size: 16))
-                                .foregroundStyle(.secondary)
-                        }
+            Button(action: self.openYouTubeFullView) {
+                PlayerBarArtworkView(
+                    width: 57,
+                    height: 32,
+                    cornerRadius: 6,
+                    glowSources: self.currentVideoGlowSources,
+                    glowIdentity: self.currentVideoGlowIdentity,
+                    glowTargetSize: CGSize(width: 64, height: 36),
+                    showsHoverOverlay: self.youtubePlayer.currentVideo != nil,
+                    overlaySystemImage: "arrow.up.left.and.arrow.down.right"
+                ) {
+                    CachedAsyncImage(
+                        url: self.youtubePlayer.currentVideo?.thumbnailURL,
+                        targetSize: CGSize(width: 64, height: 36)
+                    ) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(.quaternary)
+                            .overlay {
+                                Image(systemName: "play.rectangle")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+                    .frame(width: 57, height: 32)
+                    .clipShape(.rect(cornerRadius: 6, style: .continuous))
                 }
-                .frame(width: 57, height: 32)
-                .clipShape(.rect(cornerRadius: 6, style: .continuous))
             }
+            .buttonStyle(.plain)
+            .disabled(self.youtubePlayer.currentVideo == nil)
+            .help(String(localized: "Full Screen (F)"))
+            .accessibilityLabel(String(localized: "Full Screen"))
             .accessibilityHidden(self.youtubePlayer.currentVideo == nil)
 
             if !usesCompactDetails {
@@ -359,12 +370,12 @@ struct YouTubePlayerBar: View {
         .disabled(!self.canSeek)
     }
 
-    private var youtubeOptionsSection: some View {
+    private func youtubeOptionsSection(isCompact: Bool) -> some View {
         HStack(spacing: 6) {
             PlayerBarIconButton(
                 action: self.openYouTubeFullView,
                 accessibilityID: AccessibilityID.YouTubeContent.watchFullView,
-                accessibilityLabel: String(localized: "Full view"),
+                accessibilityLabel: String(localized: "Full Screen"),
                 icon: {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 15, weight: .regular))
@@ -373,51 +384,54 @@ struct YouTubePlayerBar: View {
                 }
             )
             .disabled(self.youtubePlayer.currentVideo == nil)
+            .help(String(localized: "Full Screen (F)"))
 
-            if self.hasPersonalAccount {
+            if !isCompact {
+                if self.hasPersonalAccount {
+                    PlayerBarIconButton(
+                        action: {
+                            Task {
+                                await self.youtubePlayer.toggleWatchLater()
+                            }
+                        },
+                        isSelected: self.youtubePlayer.isInWatchLater,
+                        accessibilityID: AccessibilityID.YouTubeContent.watchLaterButton,
+                        accessibilityLabel: String(localized: "Add to Watch Later"),
+                        icon: {
+                            Image(systemName: self.youtubePlayer.isInWatchLater ? "clock.fill" : "clock")
+                                .font(.system(size: 15, weight: .regular))
+                                .frame(width: 16, height: 16)
+                                .foregroundStyle(self.youtubePlayer.isInWatchLater ? Self.brandAccent : .primary)
+                                .contentTransition(.symbolEffect(.replace))
+                        }
+                    )
+                    .symbolEffect(.bounce, value: self.youtubePlayer.isInWatchLater)
+                    .disabled(self.youtubePlayer.currentVideo == nil)
+                }
+
                 PlayerBarIconButton(
                     action: {
-                        Task {
-                            await self.youtubePlayer.toggleWatchLater()
-                        }
+                        HapticService.toggle()
+                        self.youtubePlayer.showAirPlayPicker(at: self.airPlayAnchor.screenPoint)
                     },
-                    isSelected: self.youtubePlayer.isInWatchLater,
-                    accessibilityID: AccessibilityID.YouTubeContent.watchLaterButton,
-                    accessibilityLabel: String(localized: "Add to Watch Later"),
+                    accessibilityLabel: String(localized: "AirPlay"),
                     icon: {
-                        Image(systemName: self.youtubePlayer.isInWatchLater ? "clock.fill" : "clock")
-                            .font(.system(size: 15, weight: .regular))
-                            .frame(width: 16, height: 16)
-                            .foregroundStyle(self.youtubePlayer.isInWatchLater ? Self.brandAccent : .primary)
-                            .contentTransition(.symbolEffect(.replace))
+                        Image(systemName: "airplayvideo")
+                            .font(.system(size: 16, weight: .regular))
+                            .frame(width: 10, height: 16)
+                            .foregroundStyle(.primary)
                     }
                 )
-                .symbolEffect(.bounce, value: self.youtubePlayer.isInWatchLater)
-                .disabled(self.youtubePlayer.currentVideo == nil)
-            }
-
-            PlayerBarIconButton(
-                action: {
-                    HapticService.toggle()
-                    self.youtubePlayer.showAirPlayPicker(at: self.airPlayAnchor.screenPoint)
-                },
-                accessibilityLabel: String(localized: "AirPlay"),
-                icon: {
-                    Image(systemName: "airplayvideo")
-                        .font(.system(size: 16, weight: .regular))
-                        .frame(width: 10, height: 16)
-                        .foregroundStyle(.primary)
+                .background {
+                    AirPlayPickerAnchorView(anchor: self.airPlayAnchor)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-            )
-            .background {
-                AirPlayPickerAnchorView(anchor: self.airPlayAnchor)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-            .disabled(self.youtubePlayer.currentVideo == nil)
+                .disabled(self.youtubePlayer.currentVideo == nil)
 
-            self.compactCaptionsMenu
-            self.compactQualityMenu
+                self.compactCaptionsMenu
+                self.compactQualityMenu
+            }
 
             if self.showsFloatOnTopControl {
                 self.youtubeFloatOnTopButton
@@ -719,6 +733,13 @@ extension YouTubePlayerBar {
             isFloating: surfaceLocation == .floating,
             isFullscreenOrTransitioning: isFullscreenOrTransitioning
         )
+    }
+
+    static let compactOptionsBreakpoint: CGFloat = 440
+
+    static func compactOptionsWidth(showsFloatOnTopControl: Bool) -> CGFloat {
+        let count = showsFloatOnTopControl ? 3 : 2
+        return CGFloat(count) * self.optionButtonSlotWidth
     }
 
     static func hiddenVideoDetailsBreakpoint(showsFloatOnTopControl: Bool) -> CGFloat {

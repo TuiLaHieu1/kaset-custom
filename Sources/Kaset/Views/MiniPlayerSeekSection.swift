@@ -92,6 +92,7 @@ struct MiniPlayerSeekSection: View {
             Slider(value: self.$state.seekValue, in: 0 ... 1, onEditingChanged: self.seekEditingChanged)
                 .controlSize(.small)
                 .tint(PackageResourceLookup.brandAccent)
+                .focusable(false)
                 .accessibilityIdentifier(AccessibilityID.MiniPlayer.seekSlider)
         case .nowPlaying:
             NowPlayingCapsuleSlider(

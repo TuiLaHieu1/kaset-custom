@@ -19,16 +19,13 @@ let package = Package(
             targets: ["APIExplorer"]
         ),
     ],
-    dependencies: [
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.1"),
-    ],
+    dependencies: [],
     targets: [
         // Main app executable
         .executableTarget(
             name: "Kaset",
             dependencies: [
                 "YouTubeAskCore",
-                .product(name: "Sparkle", package: "Sparkle"),
             ],
             exclude: [
                 "Resources/AppIcon.icon",

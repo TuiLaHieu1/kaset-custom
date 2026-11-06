@@ -564,17 +564,18 @@ end tell
 
 **File**: `Sources/Kaset/Services/UpdaterService.swift`
 
-Manages application updates via Sparkle framework:
+Represents the intentionally disabled update mechanism for personal builds. Updates
+are installed manually from the local Git checkout or a freshly built app.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `automaticChecksEnabled` | `Bool` | Auto-check on launch |
-| `canCheckForUpdates` | `Bool` | Whether check is allowed now |
+| `automaticChecksEnabled` | `Bool` | Always `false` |
+| `canCheckForUpdates` | `Bool` | Always `false` |
 
 **Key Methods**:
-- `checkForUpdates()` — Manually trigger update check
+- `checkForUpdates()` — Safe no-op
 
-See [ADR-0007: Sparkle Auto-Updates](adr/0007-sparkle-auto-updates.md) for design details.
+See [ADR-0042: Manual Updates for Personal Builds](adr/0042-manual-updates-for-personal-builds.md).
 
 ### AppDelegate
 

@@ -55,7 +55,7 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
                         .frame(height: 52)
 
                     self.playbackOptionsSection
-                        .frame(width: 142, height: 52)
+                        .frame(width: 176, height: 52)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -124,12 +124,13 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
                 PlayerBarIconButton(
                     action: self.openFullScreenPlayer,
                     accessibilityID: AccessibilityID.PlayerBar.nowPlayingButton,
-                    accessibilityLabel: String(localized: "Now Playing")
+                    accessibilityLabel: String(localized: "Full Screen Player")
                 ) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 14))
                 }
                 .disabled(self.playerService.currentTrack == nil)
+                .help(String(localized: "Full Screen Player (F)"))
             } else {
                 self.songDetailsView
                     .frame(width: 110, alignment: .leading)
@@ -150,19 +151,15 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
     @ViewBuilder
     private var thumbnailView: some View {
         if let track = self.playerService.currentTrack {
-            if self.canOpenCurrentAlbum {
-                Button {
-                    self.openCurrentAlbum()
-                } label: {
-                    self.trackArtwork(for: track)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(AccessibilityID.PlayerBar.thumbnail)
-                .accessibilityLabel(Text(String(localized: "Go to Album")))
-            } else {
+            Button {
+                self.openFullScreenPlayer()
+            } label: {
                 self.trackArtwork(for: track)
-                    .accessibilityIdentifier(AccessibilityID.PlayerBar.thumbnail)
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(AccessibilityID.PlayerBar.thumbnail)
+            .accessibilityLabel(Text(String(localized: "Full Screen Player")))
+            .help(String(localized: "Full Screen Player (F)"))
         } else {
             PlayerBarArtworkView(
                 width: 32,
@@ -189,8 +186,9 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
             glowSources: self.artworkGlowSources(for: track),
             glowIdentity: self.artworkGlowIdentity(for: track),
             glowTargetSize: CGSize(width: 64, height: 64),
-            showsHoverOverlay: self.canOpenCurrentAlbum || self.showsCurrentAlbumHoverOnly,
-            isLoading: self.isResolvingAlbum
+            showsHoverOverlay: true,
+            isLoading: false,
+            overlaySystemImage: "arrow.up.left.and.arrow.down.right"
         ) {
             SongThumbnailView(song: track, size: 32, cornerRadius: 6)
         }
@@ -234,8 +232,8 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
                 }
                 .buttonStyle(.plain)
                 .disabled(self.playerService.currentTrack == nil)
-                .accessibilityLabel(String(localized: "Now Playing"))
-                .help(String(localized: "Now Playing"))
+                .accessibilityLabel(String(localized: "Full Screen Player"))
+                .help(String(localized: "Full Screen Player (F)"))
             }
             .accessibilityIdentifier(AccessibilityID.PlayerBar.trackTitle)
 
@@ -605,6 +603,7 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
 
     private var playbackOptionsSection: some View {
         HStack(spacing: 6) {
+            self.fullScreenButton
             self.lyricsButton
             self.queueButton
             self.pictureButton
@@ -612,6 +611,25 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
         }
         .padding(.trailing, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+    }
+
+    private var fullScreenButton: some View {
+        PlayerBarIconButton(
+            action: self.openFullScreenPlayer,
+            isSelected: self.playerService.showFullScreenPlayer,
+            accessibilityID: AccessibilityID.PlayerBar.nowPlayingButton,
+            accessibilityLabel: String(localized: "Full Screen Player"),
+            accessibilityValue: self.playerService.showFullScreenPlayer ? String(localized: "Showing") : String(localized: "Hidden"),
+            icon: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 15, weight: .regular))
+                    .frame(width: 15, height: 15)
+                    .foregroundStyle(self.playerService.showFullScreenPlayer ? Self.brandAccent : .primary)
+            }
+        )
+        .compatGlassID("fullScreen", in: self.playerNamespace)
+        .disabled(self.playerService.currentTrack == nil)
+        .help(String(localized: "Full Screen Player (F)"))
     }
 
     private var lyricsButton: some View {
@@ -782,7 +800,7 @@ struct PlayerBar: View { // swiftlint:disable:this type_body_length
         guard self.playerService.currentTrack != nil else { return }
         HapticService.toggle()
         withAnimation(AppAnimation.standard) {
-            self.playerService.showFullScreenPlayer = true
+            self.playerService.showFullScreenPlayer.toggle()
         }
     }
 

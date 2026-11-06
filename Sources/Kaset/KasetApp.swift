@@ -281,6 +281,11 @@ struct KasetApp: App {
                     // Wire up PlayerService to AppDelegate for dock menu and AppleScript actions
                     // This runs synchronously so AppleScript commands can access playerService immediately
                     self.appDelegate.playerService = self.playerService
+                    self.appDelegate.installPlaybackKeyboardMonitor(
+                        playerService: self.playerService,
+                        youtubePlayerService: self.youtubePlayerService,
+                        playbackArbiter: self.playbackArbiter
+                    )
                     // Drain any cold-launch URLs once `onReceive` below is subscribed.
                     self.appDelegate.beginOpenURLDelivery()
                     AppIntentsBridge.shared.setShowMainWindowHandler { self.showMainWindow() }
@@ -449,16 +454,24 @@ struct KasetApp: App {
 
                 // Volume Up - ⌘↑
                 Button(String(localized: "Volume Up")) {
-                    Task {
-                        await self.playerService.setVolume(min(1.0, self.playerService.volume + 0.1))
+                    if self.playbackArbiter.routesMediaKeysToVideo {
+                        self.youtubePlayerService.volume = min(1.0, self.youtubePlayerService.volume + 0.1)
+                    } else {
+                        Task {
+                            await self.playerService.setVolume(min(1.0, self.playerService.volume + 0.1))
+                        }
                     }
                 }
                 .keyboardShortcut(self.playbackShortcut(.upArrow, modifiers: .command))
 
                 // Volume Down - ⌘↓
                 Button(String(localized: "Volume Down")) {
-                    Task {
-                        await self.playerService.setVolume(max(0.0, self.playerService.volume - 0.1))
+                    if self.playbackArbiter.routesMediaKeysToVideo {
+                        self.youtubePlayerService.volume = max(0.0, self.youtubePlayerService.volume - 0.1)
+                    } else {
+                        Task {
+                            await self.playerService.setVolume(max(0.0, self.playerService.volume - 0.1))
+                        }
                     }
                 }
                 .keyboardShortcut(self.playbackShortcut(.downArrow, modifiers: .command))
@@ -493,6 +506,13 @@ struct KasetApp: App {
                     }
                 }
                 .keyboardShortcut("l", modifiers: .command)
+
+                // Full Screen Player - F
+                Button(self.fullScreenCommandTitle) {
+                    self.toggleFullScreenAction()
+                }
+                .keyboardShortcut(self.playbackShortcut("f", modifiers: []))
+                .disabled(self.shouldDisableFullScreenCommand)
             }
 
             // Navigation commands - replace default sidebar toggle
@@ -777,6 +797,44 @@ struct KasetApp: App {
             "Repeat One"
         case .one:
             "Repeat Off"
+        }
+    }
+
+    private var fullScreenCommandTitle: String {
+        if self.settings.appSource == .video {
+            return self.youtubePlayerService.isWindowFullscreen
+                ? String(localized: "Exit Full Screen")
+                : String(localized: "Full Screen")
+        }
+        return self.playerService.showFullScreenPlayer
+            ? String(localized: "Exit Full Screen Player")
+            : String(localized: "Full Screen Player")
+    }
+
+    private var shouldDisableFullScreenCommand: Bool {
+        if self.settings.appSource == .video {
+            return self.youtubePlayerService.currentVideo == nil
+        }
+        return self.playerService.currentTrack == nil && !self.playerService.showFullScreenPlayer
+    }
+
+    private func toggleFullScreenAction() {
+        if self.settings.appSource == .video {
+            if self.youtubePlayerService.surfaceLocation == .inline {
+                self.youtubePlayerService.popOutToWindow()
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    YouTubeVideoWindowController.shared.toggleFullscreen(returnInlineOnExit: true)
+                }
+            } else {
+                YouTubeVideoWindowController.shared.toggleFullscreen()
+            }
+        } else {
+            guard self.playerService.currentTrack != nil || self.playerService.showFullScreenPlayer else { return }
+            HapticService.toggle()
+            withAnimation(AppAnimation.standard) {
+                self.playerService.showFullScreenPlayer.toggle()
+            }
         }
     }
 

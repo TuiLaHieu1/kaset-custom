@@ -45,12 +45,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isTerminating = false
     private var isPreparingTermination = false
 
+    /// Local event monitor to prevent NSScrollView from consuming ⌘↑ and ⌘↓ playback volume shortcuts.
+    private var playbackKeyboardMonitor: Any?
+
     func applicationWillFinishLaunching(_: Notification) {
         SettingsManager.shared.appearance.apply()
     }
 
     func applicationDidFinishLaunching(_: Notification) {
         DiagnosticsLogger.app.info("AppDelegate: applicationDidFinishLaunching")
+        // Cap URLCache to 25 MB RAM / 100 MB disk to prevent unbounded memory growth from image/API caching
+        URLCache.shared = URLCache(
+            memoryCapacity: 25 * 1024 * 1024,
+            diskCapacity: 100 * 1024 * 1024,
+            directory: nil
+        )
+
         // Set up notification center delegate to show notifications in foreground
         if Bundle.main.bundleIdentifier != nil, !UITestConfig.isRunningUnitTests {
             UNUserNotificationCenter.current().delegate = self
@@ -69,9 +79,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_: Notification) {
+        if let monitor = self.playbackKeyboardMonitor {
+            NSEvent.removeMonitor(monitor)
+            self.playbackKeyboardMonitor = nil
+        }
         // Save queue for persistence on next launch
         self.playerService?.saveQueueForPersistence()
         DiagnosticsLogger.player.info("Application will terminate - saved queue for persistence")
+    }
+
+    /// Installs a local keyboard event monitor so playback volume shortcuts (⌘↑, ⌘↓)
+    /// reliably update volume instead of being swallowed by active scroll views (such as lyrics or queue).
+    func installPlaybackKeyboardMonitor(
+        playerService: PlayerService,
+        youtubePlayerService: YouTubePlayerService,
+        playbackArbiter: PlaybackArbiter
+    ) {
+        guard self.playbackKeyboardMonitor == nil else { return }
+        self.playbackKeyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak playerService, weak youtubePlayerService, weak playbackArbiter] event in
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if modifiers == .command {
+                let isDown = event.keyCode == 125 || event.specialKey == .downArrow
+                let isUp = event.keyCode == 126 || event.specialKey == .upArrow
+                if isDown || isUp {
+                    guard let keyWindow = NSApp.keyWindow, !(keyWindow.firstResponder is NSText) else {
+                        return event
+                    }
+                    let delta = isUp ? 0.1 : -0.1
+                    if playbackArbiter?.routesMediaKeysToVideo == true, let youtubePlayerService {
+                        youtubePlayerService.volume = min(1.0, max(0.0, youtubePlayerService.volume + delta))
+                    } else if let playerService {
+                        Task { @MainActor in
+                            await playerService.setVolume(min(1.0, max(0.0, playerService.volume + delta)))
+                        }
+                    }
+                    return nil
+                }
+            }
+            return event
+        }
     }
 
     func applicationShouldTerminate(_ application: NSApplication) -> NSApplication.TerminateReply {
