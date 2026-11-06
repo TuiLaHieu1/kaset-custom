@@ -14,7 +14,9 @@ final class UpdaterService {
     /// Disabled for Kaset Custom to prevent unauthorized background update checks.
     var automaticChecksEnabled: Bool {
         get { false }
-        set { /* No-op while updates are isolated */ }
+        set {
+            _ = newValue
+        }
     }
 
     /// Whether the updater can currently check for updates.

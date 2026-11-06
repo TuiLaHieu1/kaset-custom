@@ -133,25 +133,33 @@ struct SyncedLineView: View {
 
     private var primaryFont: Font {
         if self.isFullScreen {
-            self.status == .current
-                ? .system(size: 40, weight: .bold, design: .default)
-                : .system(size: 32, weight: .bold, design: .default)
+            if self.status == .current {
+                .system(size: 40, weight: .bold, design: .default)
+            } else {
+                .system(size: 32, weight: .bold, design: .default)
+            }
         } else {
-            self.status == .current
-                ? .system(size: 26, weight: .bold, design: .default)
-                : .system(size: 20, weight: .medium, design: .default)
+            if self.status == .current {
+                .system(size: 26, weight: .bold, design: .default)
+            } else {
+                .system(size: 20, weight: .medium, design: .default)
+            }
         }
     }
 
     private var romanizedFont: Font {
         if self.isFullScreen {
-            self.status == .current
-                ? .system(size: 22, weight: .medium, design: .default)
-                : .system(size: 18, weight: .regular, design: .default)
+            if self.status == .current {
+                .system(size: 22, weight: .medium, design: .default)
+            } else {
+                .system(size: 18, weight: .regular, design: .default)
+            }
         } else {
-            self.status == .current
-                ? .system(size: 18, weight: .regular, design: .default)
-                : .system(size: 14, weight: .regular, design: .default)
+            if self.status == .current {
+                .system(size: 18, weight: .regular, design: .default)
+            } else {
+                .system(size: 14, weight: .regular, design: .default)
+            }
         }
     }
 
