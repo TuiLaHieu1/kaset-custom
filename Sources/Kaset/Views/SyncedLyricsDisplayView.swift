@@ -133,11 +133,11 @@ struct SyncedLineView: View {
 
     private var primaryFont: Font {
         if self.isFullScreen {
-            return self.status == .current
+            self.status == .current
                 ? .system(size: 40, weight: .bold, design: .default)
                 : .system(size: 32, weight: .bold, design: .default)
         } else {
-            return self.status == .current
+            self.status == .current
                 ? .system(size: 26, weight: .bold, design: .default)
                 : .system(size: 20, weight: .medium, design: .default)
         }
@@ -145,11 +145,11 @@ struct SyncedLineView: View {
 
     private var romanizedFont: Font {
         if self.isFullScreen {
-            return self.status == .current
+            self.status == .current
                 ? .system(size: 22, weight: .medium, design: .default)
                 : .system(size: 18, weight: .regular, design: .default)
         } else {
-            return self.status == .current
+            self.status == .current
                 ? .system(size: 18, weight: .regular, design: .default)
                 : .system(size: 14, weight: .regular, design: .default)
         }
@@ -157,53 +157,53 @@ struct SyncedLineView: View {
 
     private var primaryTextColor: Color {
         if self.isFullScreen {
-            return .white
+            .white
         } else {
-            return self.status == .current ? .primary : (self.status == .previous ? .secondary : .secondary.opacity(0.6))
+            self.status == .current ? .primary : (self.status == .previous ? .secondary : .secondary.opacity(0.6))
         }
     }
 
     private var romanizedTextColor: Color {
         if self.isFullScreen {
-            return .white.opacity(self.status == .current ? 0.85 : 0.6)
+            .white.opacity(self.status == .current ? 0.85 : 0.6)
         } else {
-            return self.status == .current ? .secondary : .secondary.opacity(0.6)
+            self.status == .current ? .secondary : .secondary.opacity(0.6)
         }
     }
 
     private var overallOpacity: Double {
         if self.isFullScreen {
             if self.status == .current {
-                return 1.0
+                1.0
             } else if self.isHovered {
-                return 0.75
+                0.75
             } else {
-                return 0.38
+                0.38
             }
         } else {
             if self.status == .current {
-                return 1.0
+                1.0
             } else if self.isHovered {
-                return 0.8
+                0.8
             } else {
-                return self.status == .previous ? 0.6 : 0.4
+                self.status == .previous ? 0.6 : 0.4
             }
         }
     }
 
     private var blurRadius: CGFloat {
         if self.isFullScreen {
-            return (self.status == .current || self.isHovered) ? 0 : 1.2
+            (self.status == .current || self.isHovered) ? 0 : 1.2
         } else {
-            return (self.status == .current || self.isHovered) ? 0 : 0.5
+            (self.status == .current || self.isHovered) ? 0 : 0.5
         }
     }
 
     private var scale: CGFloat {
         if self.isFullScreen {
-            return self.status == .current ? 1.0 : 0.98
+            self.status == .current ? 1.0 : 0.98
         } else {
-            return self.status == .current ? 1.05 : 1.0
+            self.status == .current ? 1.05 : 1.0
         }
     }
 }

@@ -314,7 +314,7 @@ final class MiniPlayerWindowController {
     }
 
     private static func contentRect(for panel: PlayerService.MiniPlayerPanel) -> NSRect {
-        NSRect(origin: .zero, size: Self.defaultContentSize(for: panel))
+        NSRect(origin: .zero, size: self.defaultContentSize(for: panel))
     }
 
     private static func hideStandardWindowButtons(_ window: NSWindow) {
@@ -336,8 +336,13 @@ final class MiniPlayerWindowController {
 final class MiniPlayerNSWindow: NSWindow {
     weak var playerService: PlayerService?
 
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        true
+    }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)

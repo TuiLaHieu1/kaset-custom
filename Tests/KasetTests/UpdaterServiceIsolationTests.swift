@@ -1,6 +1,6 @@
 import Foundation
-@testable import Kaset
 import Testing
+@testable import Kaset
 
 @Suite("Updater service isolation")
 @MainActor

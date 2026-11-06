@@ -29,15 +29,8 @@ extension EnvironmentValues {
     @Entry var libraryViewModel: LibraryViewModel?
 }
 
-private struct OnPlaylistDeletedKey: EnvironmentKey {
-    static let defaultValue: (@MainActor @Sendable () -> Void)? = nil
-}
-
 extension EnvironmentValues {
-    var onPlaylistDeleted: (@MainActor @Sendable () -> Void)? {
-        get { self[OnPlaylistDeletedKey.self] }
-        set { self[OnPlaylistDeletedKey.self] = newValue }
-    }
+    @Entry var onPlaylistDeleted: (@MainActor @Sendable () -> Void)?
 }
 
 // MARK: - KasetApp
