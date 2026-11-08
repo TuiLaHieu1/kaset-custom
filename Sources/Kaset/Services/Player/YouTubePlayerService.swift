@@ -264,9 +264,6 @@ final class YouTubePlayerService {
     /// Timestamp of the most recent full-screen toggle to throttle rapid keyboard/click toggling.
     private var lastFullScreenToggleTime: ContinuousClock.Instant = .now - .seconds(1)
 
-    /// Fullscreen lifecycle for the main window video player.
-    var mainFullscreenPhase: YouTubeVideoWindowFullscreenPhase = .windowed
-
     /// Caption tracks available on the current watch page.
     private(set) var captionTracks: [YouTubeCaptionTrack] = []
 
@@ -740,7 +737,6 @@ final class YouTubePlayerService {
         self.isShowingAd = false
         self.resetPerVideoState()
         self.showFullScreenVideo = false
-        self.mainFullscreenPhase = .windowed
         self.surfaceLocation = .none
         self.activeInlineVideoId = nil
         self.popInRequest = nil
@@ -1172,14 +1168,6 @@ extension YouTubePlayerService {
     /// surface, hand off: keep playing in the floating window, stop if
     /// paused — or, during a source switch, stay paused in place.
     func inlineSurfaceWillDisappear(videoId: String) {
-        // A source switch must consume its one-shot pause even during a presentation handoff.
-        if !self.pauseInPlaceOnDisappear {
-            guard !self.showFullScreenVideo,
-                  self.mainFullscreenPhase != .entering,
-                  self.mainFullscreenPhase != .exiting
-            else { return }
-        }
-
         guard self.activeInlineVideoId == videoId else { return }
         self.activeInlineVideoId = nil
 
@@ -1195,6 +1183,8 @@ extension YouTubePlayerService {
             return
         }
 
+        // Route departure closes the overlay before the normal navigation handoff.
+        self.exitFullScreenVideo()
         if self.isPlaying, self.shouldPopOutOnNavigateAway() {
             self.popOutToWindow()
         } else {

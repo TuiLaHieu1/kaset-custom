@@ -26,6 +26,13 @@ WebKit keeps its HTML keyboard handling. An extracted player's DOM listener forw
 F through the existing generation-validated bridge only when neither its event
 target nor its active element is editable; interstitials do not forward the key.
 
+Watch-route disappearance remains authoritative for navigation. A real departure
+dismisses the overlay and performs the existing pop-out/stop behavior; a source
+switch still consumes its one-shot pause-in-place state. Do not infer navigation
+ownership from the main window's native fullscreen phase. The overlay is presented
+alongside the watch route, so changing presentation does not itself call the
+route-disappearance handler.
+
 Keep media presentation menu actions in `PlayerPresentationCommands`, with
 playback state owned by the existing player services.
 
