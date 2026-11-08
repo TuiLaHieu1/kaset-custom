@@ -2164,4 +2164,33 @@ struct PlaybackArbiterTests {
         #expect(youtubePlayer.surfaceLocation == .floating)
         #expect(!youtubePlayer.showFullScreenVideo)
     }
+
+    @Test("A fullscreen source switch does not suppress the next navigation", arguments: [false, true])
+    func fullscreenSourceSwitchConsumesSuppression(shouldPopOut: Bool) {
+        let youtubePlayer = YouTubePlayerService(
+            playbackController: MockYouTubeWatchPlaybackController(),
+            shouldPopOutOnNavigateAway: { shouldPopOut }
+        )
+        youtubePlayer.play(video: MockYouTubeClient.makeVideo(videoId: "fullscreen-source-switch"))
+        youtubePlayer.activeInlineVideoId = "fullscreen-source-switch"
+        youtubePlayer.showFullScreenVideo = true
+
+        youtubePlayer.prepareForSourceSwitch()
+        youtubePlayer.inlineSurfaceWillDisappear(videoId: "fullscreen-source-switch")
+        #expect(youtubePlayer.activeInlineVideoId == nil)
+        #expect(youtubePlayer.surfaceLocation == .inline)
+        #expect(youtubePlayer.currentVideo?.videoId == "fullscreen-source-switch")
+
+        // Returning to Video adopts the retained surface, then resumes playback.
+        youtubePlayer.activeInlineVideoId = "fullscreen-source-switch"
+        youtubePlayer.exitFullScreenVideo()
+        youtubePlayer.resume()
+        youtubePlayer.updatePlaybackState(.init(
+            isPlaying: true, progress: 3, duration: 60, videoId: "fullscreen-source-switch"
+        ))
+        youtubePlayer.inlineSurfaceWillDisappear(videoId: "fullscreen-source-switch")
+
+        #expect(youtubePlayer.surfaceLocation == (shouldPopOut ? .floating : .none))
+        #expect(youtubePlayer.activeInlineVideoId == nil)
+    }
 }

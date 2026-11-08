@@ -1172,12 +1172,13 @@ extension YouTubePlayerService {
     /// surface, hand off: keep playing in the floating window, stop if
     /// paused — or, during a source switch, stay paused in place.
     func inlineSurfaceWillDisappear(videoId: String) {
-        // Full screen video in the main window is not navigating away.
-        // Prevent clearing active surface or popping out to the floating mini player window during full screen.
-        guard !self.showFullScreenVideo,
-              self.mainFullscreenPhase != .entering,
-              self.mainFullscreenPhase != .exiting
-        else { return }
+        // A source switch must consume its one-shot pause even during a presentation handoff.
+        if !self.pauseInPlaceOnDisappear {
+            guard !self.showFullScreenVideo,
+                  self.mainFullscreenPhase != .entering,
+                  self.mainFullscreenPhase != .exiting
+            else { return }
+        }
 
         guard self.activeInlineVideoId == videoId else { return }
         self.activeInlineVideoId = nil
