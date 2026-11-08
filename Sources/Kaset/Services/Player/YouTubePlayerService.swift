@@ -1174,7 +1174,10 @@ extension YouTubePlayerService {
     func inlineSurfaceWillDisappear(videoId: String) {
         // Full screen video in the main window is not navigating away.
         // Prevent clearing active surface or popping out to the floating mini player window during full screen.
-        guard !self.showFullScreenVideo, self.mainFullscreenPhase == .windowed else { return }
+        guard !self.showFullScreenVideo,
+              self.mainFullscreenPhase != .entering,
+              self.mainFullscreenPhase != .exiting
+        else { return }
 
         guard self.activeInlineVideoId == videoId else { return }
         self.activeInlineVideoId = nil

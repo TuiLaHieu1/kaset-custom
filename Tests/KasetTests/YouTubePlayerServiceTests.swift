@@ -2134,6 +2134,25 @@ struct PlaybackArbiterTests {
         #expect(!youtubePlayer.showFullScreenVideo)
     }
 
+    @Test("Navigating away in native window fullscreen honors the pop-out preference", arguments: [false, true])
+    func nativeFullScreenNavigationHandoff(shouldPopOut: Bool) {
+        let youtubePlayer = YouTubePlayerService(
+            playbackController: MockYouTubeWatchPlaybackController(),
+            shouldPopOutOnNavigateAway: { shouldPopOut }
+        )
+        youtubePlayer.play(video: MockYouTubeClient.makeVideo(videoId: "fullscreen-navigation"))
+        youtubePlayer.activeInlineVideoId = "fullscreen-navigation"
+        youtubePlayer.updatePlaybackState(.init(
+            isPlaying: true, progress: 3, duration: 60, videoId: "fullscreen-navigation"
+        ))
+        youtubePlayer.mainFullscreenPhase = .fullscreen
+
+        youtubePlayer.inlineSurfaceWillDisappear(videoId: "fullscreen-navigation")
+
+        #expect(youtubePlayer.activeInlineVideoId == nil)
+        #expect(youtubePlayer.surfaceLocation == (shouldPopOut ? .floating : .none))
+    }
+
     @Test("Popping out dismisses the main window full screen presentation")
     func popOutDismissesFullScreen() {
         let youtubePlayer = YouTubePlayerService(playbackController: MockYouTubeWatchPlaybackController())

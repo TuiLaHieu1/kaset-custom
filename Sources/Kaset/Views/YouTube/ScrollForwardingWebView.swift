@@ -22,16 +22,6 @@ final class ScrollForwardingWebView: WKWebView {
         }
     }
 
-    override func keyDown(with event: NSEvent) {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if let chars = event.charactersIgnoringModifiers?.lowercased(), chars == "f", flags.isEmpty {
-            guard !event.isARepeat else { return }
-            self.nextResponder?.keyDown(with: event)
-            return
-        }
-        super.keyDown(with: event)
-    }
-
     /// Only the extracted watch document is unscrollable. A revealed
     /// interstitial (consent, CAPTCHA, sign-in) is an ordinary page that can
     /// be taller than the viewport, so it has to keep its own wheel handling

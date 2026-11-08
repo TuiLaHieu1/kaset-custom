@@ -36,13 +36,11 @@ struct YouTubeWatchSurfaceView: NSViewRepresentable {
         // Enforce strict single-owner claiming: the full-screen container only claims when
         // showFullScreenVideo is true, and the inline container only claims when it is false.
         // This prevents the dismissed full-screen view from stealing the WebView during fade-out.
-        if self.youtubePlayer.surfaceLocation == .inline {
-            if self.isFullScreen {
-                guard self.youtubePlayer.showFullScreenVideo else { return }
-            } else {
-                guard !self.youtubePlayer.showFullScreenVideo else { return }
-            }
-        }
+        guard YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: self.isFullScreen,
+            location: self.youtubePlayer.surfaceLocation,
+            showFullScreenVideo: self.youtubePlayer.showFullScreenVideo
+        ) else { return }
 
         YouTubeWatchWebView.shared.ensureInHierarchy(
             container: nsView,
@@ -56,6 +54,17 @@ struct YouTubeWatchSurfaceView: NSViewRepresentable {
 
 @MainActor
 enum YouTubeWatchSurfaceAttachment {
+    static func acceptsPresentation(
+        isFullScreen: Bool,
+        location: YouTubePlayerService.SurfaceLocation,
+        showFullScreenVideo: Bool
+    ) -> Bool {
+        if isFullScreen {
+            return location == .inline && showFullScreenVideo
+        }
+        return location != .inline || !showFullScreenVideo
+    }
+
     @discardableResult
     static func claim(
         surface: NSView,

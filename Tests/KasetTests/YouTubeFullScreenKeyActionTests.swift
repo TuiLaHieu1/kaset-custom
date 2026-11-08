@@ -1,5 +1,6 @@
 import AppKit
 import Testing
+import WebKit
 @testable import Kaset
 
 @Suite("YouTube full screen keyboard routing", .serialized)
@@ -83,6 +84,19 @@ struct YouTubeFullScreenKeyActionTests {
         window.contentView?.addSubview(textView)
         #expect(window.makeFirstResponder(textView))
         #expect(!YouTubeFullScreenKeyAction.accepts(event, in: window))
+    }
+
+    @Test("Native shortcuts defer to WebKit and its HTML editor descendants")
+    func webContentFocus() {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webContent = NSView()
+        webView.addSubview(webContent)
+
+        #expect(YouTubeFullScreenKeyAction.defersToResponder(webView))
+        #expect(YouTubeFullScreenKeyAction.defersToResponder(webContent))
+        #expect(!YouTubeFullScreenKeyAction.defersToResponder(NSView()))
     }
 
     private func event(

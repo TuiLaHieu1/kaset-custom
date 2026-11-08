@@ -6,6 +6,31 @@ import Testing
 
 @MainActor
 struct YouTubeWatchSurfaceOwnershipTests {
+    @Test("A dismissed fullscreen host cannot claim a floating surface", arguments: [false, true])
+    func fullscreenHostCannotClaimFloatingSurface(showFullScreenVideo: Bool) {
+        #expect(!YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: true,
+            location: .floating,
+            showFullScreenVideo: showFullScreenVideo
+        ))
+    }
+
+    @Test("Fullscreen and inline hosts only claim their active inline presentation")
+    func inlinePresentationOwnership() {
+        #expect(YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: true, location: .inline, showFullScreenVideo: true
+        ))
+        #expect(!YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: true, location: .inline, showFullScreenVideo: false
+        ))
+        #expect(YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: false, location: .inline, showFullScreenVideo: false
+        ))
+        #expect(!YouTubeWatchSurfaceAttachment.acceptsPresentation(
+            isFullScreen: false, location: .inline, showFullScreenVideo: true
+        ))
+    }
+
     @Test("A late outgoing Shorts host cannot reclaim the selected surface")
     func lateOutgoingShortsHostCannotReclaimSelectedSurface() {
         let surface = NSView()

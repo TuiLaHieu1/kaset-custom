@@ -38,6 +38,18 @@ extension YouTubeWatchWebView {
                 self.handleStateUpdate(body, documentGeneration: messageDocumentGeneration)
             case "VIDEO_ENDED":
                 self.handleVideoEnded(body, documentGeneration: messageDocumentGeneration)
+            case "TOGGLE_FULLSCREEN":
+                guard let video = self.playerService.currentVideo,
+                      watchWebView.currentVideoId == video.videoId
+                else { return }
+                HapticService.toggle()
+                if self.playerService.surfaceLocation == .floating {
+                    YouTubeVideoWindowController.shared.toggleFullscreen()
+                } else {
+                    withAnimation(AppAnimation.quick) {
+                        self.playerService.toggleFullScreenVideo()
+                    }
+                }
             default:
                 return
             }

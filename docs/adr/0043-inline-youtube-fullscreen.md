@@ -22,6 +22,9 @@ enter command. Repeated toggle commands may be throttled; an explicit exit is
 never throttled. Full-screen keyboard monitoring is scoped to the hosting key
 window and defers to text editing and sheets. Only supported modifier combinations
 are consumed, and key repeat does not repeatedly toggle playback or presentation.
+WebKit keeps its HTML keyboard handling. An extracted player's DOM listener forwards
+F through the existing generation-validated bridge only when neither its event
+target nor its active element is editable; interstitials do not forward the key.
 
 Keep media presentation menu actions in `PlayerPresentationCommands`, with
 playback state owned by the existing player services.

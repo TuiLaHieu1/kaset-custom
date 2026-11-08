@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WebKit
 
 // MARK: - YouTubeFullScreenKeyAction
 
@@ -42,8 +43,23 @@ enum YouTubeFullScreenKeyAction: Equatable {
     @MainActor
     static func accepts(_ event: NSEvent, in window: NSWindow?) -> Bool {
         guard let window, event.window === window, window.attachedSheet == nil else { return false }
-        let responder = window.firstResponder
-        return !(responder is NSTextView || responder is NSTextField)
+        return !Self.defersToResponder(window.firstResponder)
+    }
+
+    @MainActor
+    static func defersToResponder(_ responder: NSResponder?) -> Bool {
+        if responder is NSTextView || responder is NSTextField {
+            return true
+        }
+        // WebKit's HTML editor is a private descendant view, not an NSTextField.
+        var view = responder as? NSView
+        while let current = view {
+            if current is WKWebView {
+                return true
+            }
+            view = current.superview
+        }
+        return false
     }
 }
 

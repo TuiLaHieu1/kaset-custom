@@ -857,6 +857,12 @@ extension YouTubeWatchWebView {
         )
         contentController.addUserScript(blackout)
 
+        contentController.addUserScript(WKUserScript(
+            source: Self.fullScreenShortcutScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
+
         let observer = WKUserScript(
             source: Self.observerScript,
             injectionTime: .atDocumentEnd,
