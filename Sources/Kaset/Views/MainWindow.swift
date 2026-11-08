@@ -603,10 +603,36 @@ struct MainWindow: View { // swiftlint:disable:this type_body_length
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .zIndex(1)
             }
+
+            if self.youtubePlayerService.showFullScreenVideo, self.settings.appSource == .video {
+                YouTubeFullScreenPlayerView()
+                    .ignoresSafeArea()
+                    .zIndex(2)
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: self.playerService.showLyrics)
         .animation(.easeInOut(duration: 0.25), value: self.playerService.showQueue)
-        .toolbar(self.isShowingFullScreenPlayer ? .hidden : .automatic, for: .windowToolbar)
+        .toolbar(self.isShowingFullScreen ? .hidden : .automatic, for: .windowToolbar)
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willEnterFullScreenNotification)) { notification in
+            if self.isNotificationForMainWindow(notification) {
+                self.youtubePlayerService.mainFullscreenPhase = .entering
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notification in
+            if self.isNotificationForMainWindow(notification) {
+                self.youtubePlayerService.mainFullscreenPhase = .fullscreen
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willExitFullScreenNotification)) { notification in
+            if self.isNotificationForMainWindow(notification) {
+                self.youtubePlayerService.mainFullscreenPhase = .exiting
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notification in
+            if self.isNotificationForMainWindow(notification) {
+                self.youtubePlayerService.mainFullscreenPhase = .windowed
+            }
+        }
         .frame(minWidth: MainWindowLayout.minimumWidth, minHeight: MainWindowLayout.minimumHeight)
         .toolbar {
             if self.supportsCommandBarUI {
@@ -626,8 +652,17 @@ struct MainWindow: View { // swiftlint:disable:this type_body_length
         }
     }
 
-    private var isShowingFullScreenPlayer: Bool {
-        self.playerService.showFullScreenPlayer && self.settings.appSource == .music
+    private var isShowingFullScreen: Bool {
+        (self.playerService.showFullScreenPlayer && self.settings.appSource == .music)
+            || (self.youtubePlayerService.showFullScreenVideo && self.settings.appSource == .video)
+    }
+
+    private func isNotificationForMainWindow(_ notification: Notification) -> Bool {
+        guard let window = notification.object as? NSWindow else { return false }
+        if window.identifier?.rawValue == AccessibilityID.YouTubeContent.videoWindow {
+            return false
+        }
+        return window === NSApp.mainWindow || window === NSApp.keyWindow || window.isMainWindow || window.isKeyWindow
     }
 
     private func presentCommandBarIfAvailable() {

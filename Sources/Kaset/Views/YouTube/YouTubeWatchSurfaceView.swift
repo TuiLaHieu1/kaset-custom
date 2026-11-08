@@ -14,9 +14,11 @@ struct YouTubeWatchSurfaceView: NSViewRepresentable {
     /// an outgoing page can otherwise update late and steal the WebView back
     /// from the newly active page.
     let expectedVideoId: String?
+    let isFullScreen: Bool
 
-    init(expectedVideoId: String? = nil) {
+    init(expectedVideoId: String? = nil, isFullScreen: Bool = false) {
         self.expectedVideoId = expectedVideoId
+        self.isFullScreen = isFullScreen
     }
 
     func makeNSView(context _: Context) -> YouTubeWatchContainerView {
@@ -27,6 +29,21 @@ struct YouTubeWatchSurfaceView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: YouTubeWatchContainerView, context _: Context) {
+        // Observe full-screen toggle and surface placement so SwiftUI calls update on transitions.
+        _ = self.youtubePlayer.showFullScreenVideo
+        _ = self.youtubePlayer.surfaceLocation
+
+        // Enforce strict single-owner claiming: the full-screen container only claims when
+        // showFullScreenVideo is true, and the inline container only claims when it is false.
+        // This prevents the dismissed full-screen view from stealing the WebView during fade-out.
+        if self.youtubePlayer.surfaceLocation == .inline {
+            if self.isFullScreen {
+                guard self.youtubePlayer.showFullScreenVideo else { return }
+            } else {
+                guard !self.youtubePlayer.showFullScreenVideo else { return }
+            }
+        }
+
         YouTubeWatchWebView.shared.ensureInHierarchy(
             container: nsView,
             expectedVideoId: self.expectedVideoId,
@@ -67,6 +84,23 @@ final class YouTubeWatchContainerView: NSView {
         self.layer?.masksToBounds = true
     }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if self.window != nil, self.bounds.width >= 3, self.bounds.height >= 3 {
+            self.needsLayout = true
+            self.layoutSubtreeIfNeeded()
+        }
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        if newSize.width >= 3, newSize.height >= 3 {
+            for subview in self.subviews where subview is WKWebView {
+                subview.frame = self.bounds.insetBy(dx: -1.5, dy: -1.5)
+            }
+        }
+    }
+
     @available(*, unavailable)
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -78,6 +112,7 @@ final class YouTubeWatchContainerView: NSView {
         // SwiftUI's aspect-fitted frame and the page's 100vw video leaves
         // hairline black slivers at the edges otherwise. The container's
         // layer clips the overflow.
+        guard self.bounds.width >= 3, self.bounds.height >= 3 else { return }
         for subview in self.subviews where subview is WKWebView {
             subview.frame = self.bounds.insetBy(dx: -1.5, dy: -1.5)
         }

@@ -469,18 +469,18 @@ struct KasetApp: App {
                 .keyboardShortcut("l", modifiers: .command)
 
                 // Full Screen Player - F
-                Button(self.fullScreenCommandTitle) {
-                    self.toggleFullScreenAction()
+                Button(self.playerPresentationCommands.fullScreenCommandTitle) {
+                    self.playerPresentationCommands.toggleFullScreenAction()
                 }
                 .keyboardShortcut(self.playbackShortcut("f", modifiers: []))
-                .disabled(self.shouldDisableFullScreenCommand)
+                .disabled(self.playerPresentationCommands.shouldDisableFullScreenCommand)
 
                 // Picture in Picture - ⌘P
-                Button(self.pictureInPictureCommandTitle) {
-                    self.togglePictureInPictureAction()
+                Button(self.playerPresentationCommands.pictureInPictureCommandTitle) {
+                    self.playerPresentationCommands.togglePictureInPictureAction()
                 }
                 .keyboardShortcut("p", modifiers: .command)
-                .disabled(self.shouldDisablePictureInPictureCommand)
+                .disabled(self.playerPresentationCommands.shouldDisablePictureInPictureCommand)
             }
 
             // Navigation commands - replace default sidebar toggle
@@ -768,91 +768,12 @@ struct KasetApp: App {
         }
     }
 
-    private var fullScreenCommandTitle: String {
-        if self.settings.appSource == .video {
-            return self.youtubePlayerService.isWindowFullscreen
-                ? String(localized: "Exit Full Screen")
-                : String(localized: "Full Screen")
-        }
-        return self.playerService.showFullScreenPlayer
-            ? String(localized: "Exit Full Screen Player")
-            : String(localized: "Full Screen Player")
-    }
-
-    private var shouldDisableFullScreenCommand: Bool {
-        if self.settings.appSource == .video {
-            return self.youtubePlayerService.currentVideo == nil
-        }
-        return self.playerService.currentTrack == nil && !self.playerService.showFullScreenPlayer
-    }
-
-    private func toggleFullScreenAction() {
-        if self.settings.appSource == .video {
-            if self.youtubePlayerService.surfaceLocation == .inline {
-                self.youtubePlayerService.popOutToWindow()
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(250))
-                    YouTubeVideoWindowController.shared.toggleFullscreen(returnInlineOnExit: true)
-                }
-            } else {
-                YouTubeVideoWindowController.shared.toggleFullscreen()
-            }
-        } else {
-            guard self.playerService.currentTrack != nil || self.playerService.showFullScreenPlayer else { return }
-            HapticService.toggle()
-            withAnimation(AppAnimation.standard) {
-                self.playerService.showFullScreenPlayer.toggle()
-            }
-        }
-    }
-
-    private var pictureInPictureCommandTitle: String {
-        if self.settings.appSource == .video {
-            return self.youtubePlayerService.surfaceLocation == .floating
-                ? String(localized: "Pop video back into Kaset")
-                : String(localized: "Picture in Picture")
-        }
-        if self.playerService.showVideo {
-            return String(localized: "Pop video back into Kaset")
-        }
-        return self.playerService.isMiniPlayerVisible
-            ? String(localized: "Return to Kaset")
-            : String(localized: "Picture in Picture")
-    }
-
-    private var shouldDisablePictureInPictureCommand: Bool {
-        if self.settings.appSource == .video {
-            return self.youtubePlayerService.currentVideo == nil || self.youtubePlayerService.isWindowFullscreen
-        }
-        return self.playerService.currentTrack == nil && !self.playerService.isMiniPlayerVisible
-    }
-
-    private func togglePictureInPictureAction() {
-        if self.settings.appSource == .video {
-            guard !self.youtubePlayerService.isWindowFullscreen else { return }
-            HapticService.toggle()
-            if self.youtubePlayerService.surfaceLocation == .floating {
-                self.youtubePlayerService.requestPopIn()
-            } else {
-                self.youtubePlayerService.popOutToWindow()
-            }
-        } else {
-            HapticService.toggle()
-            if self.playerService.showVideo {
-                withAnimation(AppAnimation.standard) {
-                    self.playerService.showVideo = false
-                }
-            } else if self.playerService.showFullScreenPlayer {
-                withAnimation(AppAnimation.standard) {
-                    self.playerService.showFullScreenPlayer = false
-                }
-                _ = self.playerService.toggleMiniPlayer(mode: .switchFromMainWindow)
-            } else if self.playerService.isMiniPlayerVisible {
-                _ = self.playerService.closeMiniPlayer(restoringMainWindow: true)
-            } else {
-                self.playerService.openMiniPlayer(mode: .switchFromMainWindow)
-            }
-        }
+    private var playerPresentationCommands: PlayerPresentationCommands {
+        PlayerPresentationCommands(
+            settings: self.settings,
+            playerService: self.playerService,
+            youtubePlayerService: self.youtubePlayerService
+        )
     }
 
     // MARK: - URL Handling

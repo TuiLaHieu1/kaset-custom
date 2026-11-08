@@ -2070,4 +2070,79 @@ struct PlaybackArbiterTests {
         #expect(playerService.queue.isEmpty)
         #expect(playerService.currentTrack == nil)
     }
+
+    @Test("showFullScreenVideo defaults to false and resets on stop")
+    func showFullScreenVideoResetsOnStop() {
+        let controller = MockYouTubeWatchPlaybackController()
+        let youtubePlayer = YouTubePlayerService(playbackController: controller)
+
+        #expect(!youtubePlayer.showFullScreenVideo)
+
+        youtubePlayer.showFullScreenVideo = true
+        #expect(youtubePlayer.showFullScreenVideo)
+
+        youtubePlayer.stop()
+        #expect(!youtubePlayer.showFullScreenVideo)
+    }
+
+    @Test("toggleFullScreenVideo and exitFullScreenVideo control full screen state")
+    func toggleAndExitFullScreenVideo() async {
+        let controller = MockYouTubeWatchPlaybackController()
+        let youtubePlayer = YouTubePlayerService(playbackController: controller)
+
+        #expect(!youtubePlayer.showFullScreenVideo)
+
+        youtubePlayer.toggleFullScreenVideo()
+        #expect(youtubePlayer.showFullScreenVideo)
+
+        // Rapid toggle is throttled
+        youtubePlayer.toggleFullScreenVideo()
+        #expect(youtubePlayer.showFullScreenVideo)
+
+        // After throttle interval, exit works
+        try? await Task.sleep(for: .milliseconds(150))
+        youtubePlayer.exitFullScreenVideo()
+        #expect(!youtubePlayer.showFullScreenVideo)
+    }
+
+    @Test("inlineSurfaceWillDisappear does not pop out to window during full screen")
+    func inlineSurfaceWillDisappearSuppressedDuringFullScreen() {
+        let controller = MockYouTubeWatchPlaybackController()
+        let youtubePlayer = YouTubePlayerService(
+            playbackController: controller,
+            shouldPopOutOnNavigateAway: { true }
+        )
+        let video = MockYouTubeClient.makeVideo(videoId: "fs-test")
+        youtubePlayer.play(video: video)
+        youtubePlayer.activeInlineVideoId = "fs-test"
+        youtubePlayer.showFullScreenVideo = true
+
+        youtubePlayer.inlineSurfaceWillDisappear(videoId: "fs-test")
+
+        #expect(youtubePlayer.surfaceLocation == .inline)
+        #expect(youtubePlayer.currentVideo?.videoId == "fs-test")
+        #expect(youtubePlayer.activeInlineVideoId == "fs-test")
+    }
+
+    @Test("An explicit full screen exit is not dropped immediately after entering")
+    func immediateFullScreenExit() {
+        let youtubePlayer = YouTubePlayerService(playbackController: MockYouTubeWatchPlaybackController())
+        youtubePlayer.toggleFullScreenVideo()
+
+        youtubePlayer.exitFullScreenVideo()
+
+        #expect(!youtubePlayer.showFullScreenVideo)
+    }
+
+    @Test("Popping out dismisses the main window full screen presentation")
+    func popOutDismissesFullScreen() {
+        let youtubePlayer = YouTubePlayerService(playbackController: MockYouTubeWatchPlaybackController())
+        youtubePlayer.play(video: MockYouTubeClient.makeVideo(videoId: "fullscreen-pop-out"))
+        youtubePlayer.toggleFullScreenVideo()
+
+        youtubePlayer.popOutToWindow()
+
+        #expect(youtubePlayer.surfaceLocation == .floating)
+        #expect(!youtubePlayer.showFullScreenVideo)
+    }
 }

@@ -126,8 +126,11 @@ final class YouTubeWatchWebView {
         self.currentContainer = container
         self.webKitManager?.extensionHostWebViewDidBecomeActive(webView)
         webView.translatesAutoresizingMaskIntoConstraints = true
-        webView.frame = container.bounds
+        if container.bounds.width >= 3, container.bounds.height >= 3 {
+            webView.frame = container.bounds.insetBy(dx: -1.5, dy: -1.5)
+        }
         webView.autoresizingMask = [.width, .height]
+        container.needsLayout = true
     }
 
     /// Loads a watch page for the given video, skipping if it is already current.

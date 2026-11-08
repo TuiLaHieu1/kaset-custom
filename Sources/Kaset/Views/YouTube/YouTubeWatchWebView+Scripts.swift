@@ -502,25 +502,6 @@ extension YouTubeWatchWebView {
                 video.addEventListener('volumechange', function() {
                     enforceVolume(video);
                 });
-                video.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const player = moviePlayer();
-                    if (video.paused) {
-                        window.__kasetNativePausePending = false;
-                        window.__kasetAutoplayPending = true;
-                        if (player && typeof player.playVideo === 'function') {
-                            try { player.playVideo(); } catch (err) {}
-                        }
-                        video.play();
-                    } else {
-                        window.__kasetNativePausePending = true;
-                        window.__kasetAutoplayPending = false;
-                        if (player && typeof player.pauseVideo === 'function') {
-                            try { player.pauseVideo(); } catch (err) {}
-                        }
-                        video.pause();
-                    }
-                });
 
                 enforceVolume(video);
                 applyPendingSeek(video);

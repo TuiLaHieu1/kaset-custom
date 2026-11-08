@@ -1,3 +1,4 @@
+import SwiftUI
 import WebKit
 
 // MARK: - YouTubeWatchWebView.Coordinator

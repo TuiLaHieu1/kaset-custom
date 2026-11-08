@@ -15,9 +15,15 @@ Kaset provides keyboard control for playback and navigation while preserving sta
 | `⌘R`     | Cycle repeat mode (Off → All → One) |
 | `⇧⌘M`    | Switch to Mini Player               |
 | `⌘P`     | Picture in Picture (toggle floating video / PiP) |
+| `F`      | Toggle the full screen player |
 | `Esc`    | Close the full screen Now Playing view |
 
 Mute is still available from the Playback menu and AppleScript, but Kaset intentionally does not assign a default mute shortcut so the native macOS minimize shortcut (`⌘M`) continues to work.
+
+In the YouTube full screen player, `←`/`→` seek by 10 seconds, `↑`/`↓` adjust
+volume, and `M` toggles mute. These controls apply only to the player window and
+defer to text editing. Holding Space, F, Escape, M, or ⌘P does not repeatedly
+toggle playback or presentation; holding an arrow continues adjusting playback.
 
 Playback shortcuts are source-aware where both sources implement an equivalent action: play/pause, skip, seek, and volume route to regular YouTube when a YouTube video was the last active playback source. Shuffle, repeat, queue, and lyrics remain YouTube Music concepts.
 

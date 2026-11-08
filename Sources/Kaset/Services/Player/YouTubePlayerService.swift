@@ -258,6 +258,15 @@ final class YouTubePlayerService {
         self.windowFullscreenPhase.blocksWindowedControls
     }
 
+    /// Whether the full screen video overlay is presented in the main window.
+    var showFullScreenVideo: Bool = false
+
+    /// Timestamp of the most recent full-screen toggle to throttle rapid keyboard/click toggling.
+    private var lastFullScreenToggleTime: ContinuousClock.Instant = .now - .seconds(1)
+
+    /// Fullscreen lifecycle for the main window video player.
+    var mainFullscreenPhase: YouTubeVideoWindowFullscreenPhase = .windowed
+
     /// Caption tracks available on the current watch page.
     private(set) var captionTracks: [YouTubeCaptionTrack] = []
 
@@ -730,6 +739,8 @@ final class YouTubePlayerService {
         self.duration = 0
         self.isShowingAd = false
         self.resetPerVideoState()
+        self.showFullScreenVideo = false
+        self.mainFullscreenPhase = .windowed
         self.surfaceLocation = .none
         self.activeInlineVideoId = nil
         self.popInRequest = nil
@@ -745,6 +756,7 @@ final class YouTubePlayerService {
     /// Moves the surface to the floating video window.
     func popOutToWindow() {
         guard self.currentVideo != nil else { return }
+        self.exitFullScreenVideo()
         self.logger.info("YouTubePlayer: pop out to floating window")
         self.surfaceLocation = .floating
     }
@@ -1098,6 +1110,21 @@ final class YouTubePlayerService {
 }
 
 extension YouTubePlayerService {
+    /// Toggles the main window full-screen video overlay, throttled to prevent rapid key-repeat flooding.
+    func toggleFullScreenVideo() {
+        let now = ContinuousClock.now
+        guard now - self.lastFullScreenToggleTime >= .milliseconds(120) else { return }
+        self.lastFullScreenToggleTime = now
+        self.showFullScreenVideo.toggle()
+    }
+
+    /// Explicit dismissal must succeed even immediately after an enter command.
+    func exitFullScreenVideo() {
+        guard self.showFullScreenVideo else { return }
+        self.lastFullScreenToggleTime = .now
+        self.showFullScreenVideo = false
+    }
+
     private func beginPlaybackLoading() {
         self.playbackLoadingTimeoutTask?.cancel()
         self.playbackLoadingGeneration &+= 1
@@ -1145,6 +1172,10 @@ extension YouTubePlayerService {
     /// surface, hand off: keep playing in the floating window, stop if
     /// paused — or, during a source switch, stay paused in place.
     func inlineSurfaceWillDisappear(videoId: String) {
+        // Full screen video in the main window is not navigating away.
+        // Prevent clearing active surface or popping out to the floating mini player window during full screen.
+        guard !self.showFullScreenVideo, self.mainFullscreenPhase == .windowed else { return }
+
         guard self.activeInlineVideoId == videoId else { return }
         self.activeInlineVideoId = nil
 

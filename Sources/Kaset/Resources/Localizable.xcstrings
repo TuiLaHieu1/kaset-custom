@@ -66798,6 +66798,50 @@
           }
         }
       }
+    },
+    "Full Screen": {
+      "comment": "YouTube player presentation control. Untranslated locales fall back to English.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Screen"
+          }
+        }
+      }
+    },
+    "Exit Full Screen": {
+      "comment": "YouTube player presentation control. Untranslated locales fall back to English.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit Full Screen"
+          }
+        }
+      }
+    },
+    "Full Screen (F)": {
+      "comment": "YouTube player presentation control. Untranslated locales fall back to English.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Screen (F)"
+          }
+        }
+      }
+    },
+    "Exit Full Screen (Esc / F)": {
+      "comment": "YouTube player presentation control. Untranslated locales fall back to English.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit Full Screen (Esc / F)"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

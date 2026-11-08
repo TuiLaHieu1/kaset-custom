@@ -382,21 +382,33 @@ struct YouTubePlayerBar: View {
         .disabled(!self.canSeek)
     }
 
+    private var isFullScreenPresented: Bool {
+        self.youtubePlayer.surfaceLocation == .floating
+            ? self.youtubePlayer.isWindowFullscreen
+            : self.youtubePlayer.showFullScreenVideo
+    }
+
     private func youtubeOptionsSection(isCompact: Bool) -> some View {
         HStack(spacing: 6) {
             PlayerBarIconButton(
                 action: self.openYouTubeFullView,
                 accessibilityID: AccessibilityID.YouTubeContent.watchFullView,
-                accessibilityLabel: String(localized: "Full Screen"),
+                accessibilityLabel: self.isFullScreenPresented
+                    ? String(localized: "Exit Full Screen")
+                    : String(localized: "Full Screen"),
                 icon: {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    Image(systemName: self.isFullScreenPresented
+                        ? "arrow.down.right.and.arrow.up.left"
+                        : "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 15, weight: .regular))
                         .frame(width: 16, height: 16)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(self.isFullScreenPresented ? Self.brandAccent : .primary)
                 }
             )
-            .disabled(self.youtubePlayer.currentVideo == nil)
-            .help(String(localized: "Full Screen (F)"))
+            .disabled(self.youtubePlayer.currentVideo == nil && !self.isFullScreenPresented)
+            .help(self.isFullScreenPresented
+                ? String(localized: "Exit Full Screen (Esc / F)")
+                : String(localized: "Full Screen (F)"))
 
             if !isCompact {
                 if self.hasPersonalAccount {
@@ -714,20 +726,19 @@ struct YouTubePlayerBar: View {
 
     private func openYouTubeFullView() {
         HapticService.toggle()
-        if self.youtubePlayer.surfaceLocation == .inline {
-            self.youtubePlayer.popOutToWindow()
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(250))
-                YouTubeVideoWindowController.shared.toggleFullscreen(returnInlineOnExit: true)
-            }
-        } else {
+        if self.youtubePlayer.surfaceLocation == .floating {
             YouTubeVideoWindowController.shared.toggleFullscreen()
+        } else {
+            withAnimation(AppAnimation.quick) {
+                self.youtubePlayer.toggleFullScreenVideo()
+            }
         }
     }
 
     private func toggleYouTubePictureInPicture() {
         guard !self.youtubePlayer.isWindowFullscreen else { return }
         HapticService.toggle()
+        self.youtubePlayer.exitFullScreenVideo()
         if self.youtubePlayer.surfaceLocation == .floating {
             self.youtubePlayer.requestPopIn()
         } else {
