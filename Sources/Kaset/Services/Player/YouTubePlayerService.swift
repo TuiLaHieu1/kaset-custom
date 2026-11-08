@@ -202,9 +202,14 @@ final class YouTubePlayerService {
     @ObservationIgnored private var playbackLoadingGeneration: UInt64 = 0
 
     /// Playback volume (0...1).
+    @ObservationIgnored private var volumeBeforeMute: Double = 1
+
     var volume: Double = 1.0 {
         didSet {
             guard oldValue != self.volume else { return }
+            if self.volume > 0 {
+                self.volumeBeforeMute = self.volume
+            }
             self.playbackController.setVolume(self.volume)
         }
     }
@@ -1106,6 +1111,11 @@ final class YouTubePlayerService {
 }
 
 extension YouTubePlayerService {
+    /// Remembers the volume across fullscreen views and native volume controls.
+    func toggleMute() {
+        self.volume = self.volume > 0 ? 0 : self.volumeBeforeMute
+    }
+
     /// Toggles the main window full-screen video overlay, throttled to prevent rapid key-repeat flooding.
     func toggleFullScreenVideo() {
         let now = ContinuousClock.now

@@ -10,7 +10,6 @@ struct YouTubeFullScreenPlayerView: View {
 
     @State private var isHovering = false
     @State private var isVolumeOverlayPresented = false
-    @State private var previousNonZeroVolume: Double = 1.0
     @State private var hideControlsTask: Task<Void, Never>?
 
     var body: some View {
@@ -164,7 +163,7 @@ struct YouTubeFullScreenPlayerView: View {
         case .pictureInPicture:
             self.togglePictureInPicture()
         case .mute:
-            self.toggleMute()
+            self.youtubePlayer.toggleMute()
         case .seekBackward:
             self.youtubePlayer.seekBackward(by: 10)
         case .seekForward:
@@ -182,14 +181,5 @@ struct YouTubeFullScreenPlayerView: View {
         }
         self.revealControlsTemporarily()
         return true
-    }
-
-    private func toggleMute() {
-        if self.youtubePlayer.volume > 0 {
-            self.previousNonZeroVolume = self.youtubePlayer.volume
-            self.youtubePlayer.volume = 0
-        } else {
-            self.youtubePlayer.volume = self.previousNonZeroVolume > 0 ? self.previousNonZeroVolume : 1
-        }
     }
 }
